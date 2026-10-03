@@ -8,7 +8,12 @@ val SelectAllAction = Action(
     icon = R.drawable.maximize,
     name = R.string.action_select_all_title,
     simplePressImpl = { manager, _ ->
-        manager.sendKeyEvent(KeyEvent.KEYCODE_A, KeyEvent.META_CTRL_ON)
+        // Use the InputConnection's native context menu action when possible.
+        // This works reliably across all languages (including Arabic).
+        // Fall back to Ctrl+A if the context menu action isn't supported.
+        if(!manager.selectAllFromInputConnection()) {
+            manager.sendKeyEvent(KeyEvent.KEYCODE_A, KeyEvent.META_CTRL_ON)
+        }
     },
     windowImpl = null,
 )
