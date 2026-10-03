@@ -8,6 +8,7 @@ import androidx.annotation.Keep
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.futo.inputmethod.annotations.ExternallyReferenced
+import org.futo.inputmethod.latin.R
 import org.futo.inputmethod.latin.uix.SettingsKey
 import org.futo.inputmethod.latin.uix.getSetting
 import org.futo.inputmethod.latin.uix.setSetting
@@ -16,7 +17,7 @@ import java.io.File
 import java.io.FileOutputStream
 
 
-val BASE_MODEL_RESOURCE = 0
+val BASE_MODEL_RESOURCE = R.raw.ml4_q6_k
 val BASE_MODEL_NAME = "ml4_q6_k"
 val DEPRECATED_MODEL_NAME = "ml4_1_f16_meta_fixed"
 
@@ -117,7 +118,6 @@ object ModelPaths {
 
             read = inputStream.read(bytes)
 
-            // Sanity check to make sure it's valid
             if(read < 4
                 || bytes[0] != 'G'.code.toByte()
                 || bytes[1] != 'G'.code.toByte()
@@ -135,7 +135,6 @@ object ModelPaths {
             }
         }
 
-        // Attempt to load metadata here and check if it can even load
         val details = ModelInfoLoader(
             name = file.nameWithoutExtension,
             path = file
@@ -146,19 +145,17 @@ object ModelPaths {
             throw IllegalArgumentException("Failed to load metadata, file \"${file.name}\" may not be a valid GGUF file")
         }
 
-        // Check that the model has any features at all
         if(details.features.isEmpty()) {
             file.delete()
-            throw IllegalArgumentException("Model is a valid GGUF file, but does not support use as a keyboard language model (it lacks KeyboardLM metadata).\n\nIf you are a model creator: models must support specific features and prompt formats; arbitrary gguf models are unsupported at this time. Refer to the model creation documentation for more details.")
+            throw IllegalArgumentException("Model is a valid GGUF file, but does not support use as a keyboard language model (it lacks KeyboardLM metadata).")
         }
 
-        // Check that we support all features from this model
         val unsupportedFeatures = details.features.filter {
             !(supportedFeatures.contains(it) || it.startsWith("opt_") || it.startsWith("_"))
         }
         if(unsupportedFeatures.isNotEmpty()) {
             file.delete()
-            throw IllegalArgumentException("Model has the following unknown features: [${unsupportedFeatures.joinToString(separator=", ")}]\nYou probably need to update FUTO Keyboard.")
+            throw IllegalArgumentException("Model has the following unknown features: [${unsupportedFeatures.joinToString(separator=", ")}]")
         }
 
         return file
@@ -170,7 +167,7 @@ object ModelPaths {
 
     suspend fun updateModelOption(context: Context, key: String, value: File) {
         if(!value.absolutePath.startsWith(context.filesDir.absolutePath)) {
-            throw IllegalArgumentException("Model path ${value.absolutePath} does not start with filesDir path ${context.filesDir.absolutePath}")
+            throw IllegalArgumentException("Model path does not start with filesDir path")
         }
 
         val options = context.getSetting(MODEL_OPTION_KEY).filter {
@@ -185,6 +182,7 @@ object ModelPaths {
     }
 
     suspend fun getModelOptions(context: Context): Map<String, ModelInfoLoader> {
+        ensureDefaultModelExists(context)
         val modelDirectory = getModelDirectory(context)
         val options = context.getSetting(MODEL_OPTION_KEY)
 
@@ -194,7 +192,6 @@ object ModelPaths {
             val language = splits[0]
             val modelName = splits[1]
 
-            // TODO: This assumes the extension is .gguf
             val modelFile = File(modelDirectory, "$modelName.gguf")
             if(modelFile.exists()) {
                 modelOptionsByLanguage[language] = ModelInfoLoader(modelFile, modelName)
@@ -217,8 +214,27 @@ object ModelPaths {
     }
 
     fun ensureDefaultModelExists(context: Context) {
-        // Base ML model is not bundled with this build.
-        // Users can import their own models through the Model Manager UI.
+        val directory = getModelDirectory(context)
+
+        val oldFile = File(directory, "$DEPRECATED_MODEL_NAME.gguf")
+        if(oldFile.isFile) oldFile.delete()
+
+        val tgtFile = File(directory, "$BASE_MODEL_NAME.gguf")
+        if(!tgtFile.isFile) {
+            try {
+                context.resources.openRawResource(BASE_MODEL_RESOURCE).use { inputStream ->
+                    FileOutputStream(tgtFile).use { outputStream ->
+                        var read = 0
+                        val bytes = ByteArray(1024)
+                        while (inputStream.read(bytes).also { read = it } != -1) {
+                            outputStream.write(bytes, 0, read)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("ModelPaths", "Failed to extract default model", e)
+            }
+        }
     }
 
     fun shouldFileBeIncludedInExport(file: File): Boolean {
@@ -226,6 +242,8 @@ object ModelPaths {
     }
 
     fun getModels(context: Context): List<ModelInfoLoader> {
+        ensureDefaultModelExists(context)
+
         return getModelDirectory(context).listFiles()?.map {
             ModelInfoLoader(
                 path = it,
