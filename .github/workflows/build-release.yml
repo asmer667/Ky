@@ -55,6 +55,31 @@ jobs:
           sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.2.13676358" || \
           sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.2.13676358" --verbose
 
+      - name: Patch build.gradle to remove missing AAR deps
+        shell: bash
+        run: |
+          echo "--- BEFORE (build.gradle) ---"
+          grep -n "mozc\|vad\|rime\|futo-swipe" build.gradle || true
+          echo "--- BEFORE (voiceinput-shared/build.gradle) ---"
+          grep -n "vad" voiceinput-shared/build.gradle || true
+
+          # احذف السطر الخاص بـ mozc من build.gradle الرئيسي
+          sed -i "/implementation(name:'mozc-release', ext:'aar')/d" build.gradle
+
+          # احذف السطر الخاص بـ rime من build.gradle الرئيسي
+          sed -i "/implementation files('libs\/rime-release.aar')/d" build.gradle
+
+          # احذف السطر الخاص بـ futo-swipe من build.gradle الرئيسي
+          sed -i "/implementation files('libs\/futo-swipe-release.aar')/d" build.gradle
+
+          # احذف السطر الخاص بـ vad من voiceinput-shared/build.gradle
+          sed -i "/implementation(name:'vad-release', ext:'aar')/d" voiceinput-shared/build.gradle
+
+          echo "--- AFTER (build.gradle) ---"
+          grep -n "mozc\|vad\|rime\|futo-swipe" build.gradle || echo "None"
+          echo "--- AFTER (voiceinput-shared/build.gradle) ---"
+          grep -n "vad" voiceinput-shared/build.gradle || echo "None"
+
       - name: Build stable release (arm64-v8a)
         env:
           VERSION_CODE: ${{ github.run_number }}
