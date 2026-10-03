@@ -96,16 +96,48 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --no-daemon --stacktrace assembleStableRelease 2>&1 | tail -300
 
-      - name: Find APK
+      - name: Find APK - full search
         if: always()
         shell: bash
         run: |
-          find . -name "*.apk" -path "*release*" 2>/dev/null
+          echo "=========================================="
+          echo "SEARCHING FOR ALL APK FILES"
+          echo "=========================================="
+          find . -name "*.apk" -type f 2>/dev/null > apk_list.txt
+          cat apk_list.txt
+          echo ""
+          echo "=========================================="
+          echo "SEARCHING BUILD/OUTPUTS DIRECTORIES"
+          echo "=========================================="
+          find . -type d -path "*build/outputs*" 2>/dev/null | head -30
+          echo ""
+          echo "=========================================="
+          echo "TREE OF OUTPUTS"
+          echo "=========================================="
+          find . -type d -name "outputs" 2>/dev/null | while read d; do
+            echo "--- $d ---"
+            find "$d" -type f 2>/dev/null | head -20
+          done
+          echo ""
+          echo "=========================================="
+          echo "APK COUNT"
+          echo "=========================================="
+          wc -l apk_list.txt
+
+      - name: Copy APKs to single folder
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p final-apks
+          find . -name "*.apk" -type f -exec cp {} final-apks/ \; 2>/dev/null || true
+          ls -la final-apks/
+          echo "Files in final-apks:"
+          find final-apks -type f -exec ls -lh {} \;
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
-        if: success()
+        if: always()
         with:
-          name: futo-keyboard-arm64-release
-          path: '**/build/outputs/apk/*release/*.apk'
+          name: futo-keyboard-apks
+          path: final-apks/*.apk
           if-no-files-found: warn
