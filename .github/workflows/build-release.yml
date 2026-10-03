@@ -1,136 +1,111 @@
-name: Build FUTO AARs (Rime + Mozc + Swipe)
+name: Build FUTO Keyboard (arm64)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ "main", "master" ]
 
 jobs:
-  build-rime:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
     steps:
-      - name: Checkout RimeJni (recursive)
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          lfs: true
+
+      - name: Install Git LFS and fetch submodule binaries
+        shell: bash
         run: |
-          git clone --recursive --depth 1 https://gitlab.futo.org/keyboard/RimeJni.git rime-source
-          cd rime-source
-          git submodule update --init --recursive
+          git lfs install --local || true
+          git submodule sync --recursive || true
+          git submodule update --init --recursive || true
+          git submodule foreach --recursive 'git lfs install --local || true; git lfs pull || true' || true
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
-      - name: Setup Android SDK/NDK
+      - name: Install Android SDK components
+        shell: bash
         run: |
-          SDK_ROOT="/usr/local/lib/android/sdk"
-          echo "$SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "ANDROID_HOME=$SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$SDK_ROOT/ndk/28.2.13676358" >> $GITHUB_ENV
+          set -x
+          SDK_ROOT="$ANDROID_SDK_ROOT"
+          if [ -z "$SDK_ROOT" ]; then SDK_ROOT="$ANDROID_HOME"; fi
+          if [ -z "$SDK_ROOT" ]; then SDK_ROOT="/usr/local/lib/android/sdk"; fi
+          echo "SDK_ROOT=$SDK_ROOT"
+          export PATH="$SDK_ROOT/cmdline-tools/latest/bin:$SDK_ROOT/cmdline-tools/16.0/bin:$PATH"
           yes | sdkmanager --licenses || true
-          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.2.13676358" || true
+          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.2.13676358" --verbose
 
-      - name: Build Rime AAR
+      - name: Verify AARs
+        shell: bash
         run: |
-          cd rime-source
-          chmod +x gradlew
-          ./gradlew :rime:assembleRelease --stacktrace
-
-      - name: Upload Rime AAR
-        uses: actions/upload-artifact@v4
-        with:
-          name: rime-aar
-          path: rime-source/rime/build/outputs/aar/*.aar
-          if-no-files-found: warn
-
-  build-mozc:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout mozc-lib (recursive)
-        run: |
-          git clone --recursive --depth 1 https://gitlab.futo.org/keyboard/mozc-lib.git mozc-source
-          cd mozc-source
-          git submodule update --init --recursive
-
-      - name: Apply patches
-        run: |
-          cd mozc-source
-          if [ -f patches.diff ]; then
-            cd third_party/mozc
-            git apply ../../patches.diff 2>&1 || echo "patches might already be applied"
-          fi
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Setup Android SDK/NDK
-        run: |
-          SDK_ROOT="/usr/local/lib/android/sdk"
-          echo "$SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "ANDROID_HOME=$SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$SDK_ROOT/ndk/28.2.13676358" >> $GITHUB_ENV
-          yes | sdkmanager --licenses || true
-          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;28.2.13676358" || true
-
-      - name: Build Mozc AAR
-        run: |
-          cd mozc-source
-          chmod +x gradlew
-          ./gradlew assembleRelease --stacktrace
-
-      - name: Upload Mozc AAR
-        uses: actions/upload-artifact@v4
-        with:
-          name: mozc-aar
-          path: mozc-source/build/outputs/aar/*.aar
-          if-no-files-found: warn
-
-  build-swipe:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout swipe-library (recursive)
-        run: |
-          git clone --recursive --depth 1 https://gitlab.futo.org/keyboard/swipe-library.git swipe-source
-          cd swipe-source
-          git submodule update --init --recursive 2>&1 || echo "submodule update failed (executorch is huge)"
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Setup Android SDK/NDK
-        run: |
-          SDK_ROOT="/usr/local/lib/android/sdk"
-          echo "$SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "ANDROID_HOME=$SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$SDK_ROOT/ndk/28.2.13676358" >> $GITHUB_ENV
-          yes | sdkmanager --licenses || true
-          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.2.13676358" || true
-
-      - name: Inspect swipe android folder
-        run: |
-          cd swipe-source/android
-          echo "=== build.gradle.kts ==="
-          cat build.gradle.kts
+          echo "=== libs folder contents ==="
+          ls -la libs/
           echo ""
-          echo "=== settings.gradle.kts ==="
-          cat settings.gradle.kts
+          echo "=== Checking required AARs ==="
+          for f in vad-release.aar rime-release.aar futo-swipe-release.aar; do
+            if [ -f "libs/$f" ]; then
+              echo "✅ $f FOUND"
+            else
+              echo "❌ $f MISSING"
+            fi
+          done
 
-      - name: Build Swipe AAR
+      - name: Patch build.gradle to remove Mozc + fix includes
+        shell: bash
         run: |
-          cd swipe-source/android
-          chmod +x gradlew
-          ./gradlew assembleRelease --stacktrace
+          echo "=== BEFORE ==="
+          grep -n "mozc\|rime\|futo-swipe" build.gradle || true
 
-      - name: Upload Swipe AAR
+          # احذف Mozc (ما عندناش)
+          sed -i "/implementation(name:'mozc-release', ext:'aar')/d" build.gradle
+          sed -i "/protobuf-javalite/d" build.gradle
+          sed -i "/com.google.guava:guava/d" build.gradle
+
+          echo "=== AFTER ==="
+          grep -n "mozc\|rime\|futo-swipe" build.gradle || true
+
+      - name: Delete Mozc-dependent source files
+        shell: bash
+        run: |
+          # احذف الملفات اللي بتستخدم Mozc
+          find java/src -name "JapaneseIME.kt" -delete 2>/dev/null || true
+          find java/src -name "PersonalDictionaryJa.kt" -delete 2>/dev/null || true
+          find java/src -name "ChineseIME.kt" -delete 2>/dev/null || true
+
+          echo "=== Files that still reference mozc ==="
+          grep -rl "org.mozc\|Mozc" java/src/ 2>/dev/null | head -20 || echo "none"
+
+      - name: Build stable release (arm64-v8a)
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 1.0.${{ github.run_number }}
+          BRANCH_NAME: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace assembleStableRelease 2>&1 | tail -300
+
+      - name: Find APK
+        if: always()
+        shell: bash
+        run: |
+          find . -name "*.apk" -path "*release*" 2>/dev/null
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
+        if: success()
         with:
-          name: swipe-aar
-          path: swipe-source/android/**/build/outputs/aar/*.aar
+          name: futo-keyboard-arm64-release
+          path: '**/build/outputs/apk/*release/*.apk'
           if-no-files-found: warn
