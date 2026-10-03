@@ -92,6 +92,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -120,6 +121,9 @@ import org.futo.inputmethod.latin.uix.theme.LocalCompatEmojiTypeface
 import org.futo.inputmethod.latin.uix.theme.Typography
 import org.futo.inputmethod.latin.uix.theme.emojiNeedsCompat
 import org.futo.inputmethod.latin.uix.theme.emojiShouldShow
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.nio.charset.StandardCharsets
 import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
@@ -972,8 +976,66 @@ class PersistentEmojiState : PersistentActionState {
                 GlobalScope.launch(Dispatchers.IO) { loadEmojis(context) }
             }
 
-            // Note: emoji_i18n resource is not bundled in this build.
-            // Only English translations from gemoji are supported.
+            // Load translations from the bundled emoji_i18n resource.
+            // The file contains one line per language: "#lang" followed by a JSON
+            // line mapping emoji -> list of translated names.
+            GlobalScope.launch(Dispatchers.IO) {
+                try {
+                    val inputStream = context.resources.openRawResource(R.raw.emoji_i18n)
+
+                    var data: JsonObject? = null
+                    BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8)).use { reader ->
+                        while (true) {
+                            val line = reader.readLine() ?: break
+                            if (line.startsWith("#")) {
+                                val lineLanguage = line.substring(1).trim()
+                                if (lineLanguage == language) {
+                                    val jsonLine = reader.readLine() ?: break
+                                    data = Json.parseToJsonElement(jsonLine).jsonObject
+                                    break
+                                }
+                            }
+                        }
+                    }
+
+                    if (data != null) {
+                        val translations = data!!.map { entry ->
+                            val names = entry.value.jsonArray.map { it.jsonPrimitive.content }
+                            entry.key to EmojiNames(names)
+                        }.toMap()
+                        loadedTranslations.put(language, EmojiTranslations(translations))
+
+                        // Build shortcuts from unique words
+                        val wordCounts = hashMapOf<String, Int>()
+                        val words = translations.values.flatMap {
+                            it.names.flatMap { name -> name.split(" ") }.toSet()
+                        }
+                        words.forEach {
+                            wordCounts[it] = (wordCounts[it] ?: 0) + 1
+                        }
+
+                        val aliases = translations.flatMap { entry ->
+                            val ttsName = entry.value.names.lastOrNull() ?: ""
+                            val names = entry.value.names.flatMap { it.split(" ") }
+                            names.filter {
+                                wordCounts[it] == 1 && it.length > 1
+                            }.map {
+                                it.lowercase() to entry.key
+                            } + if(ttsName.isNotEmpty() && !ttsName.contains(' ')) {
+                                listOf(ttsName.lowercase() to entry.key)
+                            } else {
+                                emptyList()
+                            }
+                        }.reversed().toMap()
+
+                        if(language != "en") {
+                            loadedTranslatedShortcuts.put(language, aliases)
+                        }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("EmojiAction", "Failed to load emoji_i18n for $language", e)
+                }
+            }
         }
 
         @JvmStatic
@@ -1060,9 +1122,6 @@ class PersistentEmojiState : PersistentActionState {
                             description = description,
                             category = category,
                             skinTones = it.jsonObject["skin_tones"]?.jsonPrimitive?.booleanOrNull == true,
-                            //tags = it.jsonObject["tags"]?.jsonArray?.map { it.jsonPrimitive.content }
-                            //    ?.toList() ?: listOf(),
-                            //aliases =
                         )
                     }
                 }
