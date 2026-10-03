@@ -4,7 +4,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
@@ -21,10 +20,10 @@ fun ConfirmDeleteExtraDictFileDialog(
 
     AlertDialog(
         title = {
-            Text(stringResource(R.string.personal_dictionary_delete_imported_file_title))
+            Text(stringResource(R.string.user_dict_settings_delete))
         },
         text = {
-            Text(stringResource(R.string.personal_dictionary_delete_imported_file_body))
+            Text(dict)
         },
         onDismissRequest = {
             navController.navigateUp()
