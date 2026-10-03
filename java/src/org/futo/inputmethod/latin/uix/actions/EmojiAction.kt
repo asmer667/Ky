@@ -125,6 +125,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 import java.util.Locale
+import java.util.zip.GZIPInputStream
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -979,9 +980,12 @@ class PersistentEmojiState : PersistentActionState {
             // Load translations from the bundled emoji_i18n resource.
             // The file contains one line per language: "#lang" followed by a JSON
             // line mapping emoji -> list of translated names.
+            // Note: the file is GZIP-compressed (its inner name is emoji_i18n.jsondl).
             GlobalScope.launch(Dispatchers.IO) {
                 try {
-                    val inputStream = context.resources.openRawResource(R.raw.emoji_i18n)
+                    val inputStream = GZIPInputStream(
+                        context.resources.openRawResource(R.raw.emoji_i18n)
+                    )
 
                     var data: JsonObject? = null
                     BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8)).use { reader ->
