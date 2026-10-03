@@ -27,6 +27,21 @@ object Dictionaries {
         })
     }
 
+    /**
+     * All built-in dictionary resource IDs extracted from the official FUTO Keyboard APK.
+     * When a language-specific dictionary isn't found, we try each of these in order.
+     * The first one that can be opened by BinaryDictionary will be used.
+     */
+    private val fallbackDictionaryResources = listOf(
+        R.raw.dict_tw,
+        R.raw.dict_w4,
+        R.raw.dict_kk,
+        R.raw.dict_pm,
+        R.raw.dict_4s,
+        R.raw.dict_3u,
+        R.raw.dict_yz,
+    )
+
     fun getDictionaryIfExists(context: Context, locale: Locale?, kind: DictionaryKind): AssetFileAddress? {
         if(locale == null) return null
 
@@ -35,36 +50,60 @@ object Dictionaries {
         }
     }
 
+    /**
+     * Tries to open each built-in dictionary in [fallbackDictionaryResources] in order.
+     * Returns the first one that could be opened successfully.
+     */
+    fun getAnyFallbackDictionary(context: Context): AssetFileAddress? {
+        for (resId in fallbackDictionaryResources) {
+            try {
+                val afd = context.resources.openRawResourceFd(resId) ?: continue
+                try {
+                    val sourceDir = context.getApplicationInfo().sourceDir
+                    val packagePath = File(sourceDir)
+                    if (!packagePath.isFile()) continue
+                    return AssetFileAddress(sourceDir, afd.startOffset, afd.length)
+                } finally {
+                    try { afd.close() } catch (_: IOException) {}
+                }
+            } catch (e: NotFoundException) {
+                continue
+            } catch (e: Exception) {
+                Log.w("Dictionaries", "Failed to open dict resource $resId", e)
+                continue
+            }
+        }
+        return null
+    }
+
     fun getFallbackDictionary(context: Context): AssetFileAddress? {
+        // First, try the raw main dictionary (legacy behavior)
         var afd: AssetFileDescriptor? = null
         try {
             val resId: Int = R.raw.main
-            if (0 == resId) return null
-            afd = context.resources.openRawResourceFd(resId)
-            if (afd == null) {
-                Log.e("Dictionaries", "Found the resource but it is compressed. resId=" + resId)
-                return null
-            }
-            val sourceDir = context.getApplicationInfo().sourceDir
-
-            val packagePath = File(sourceDir)
-            if (!packagePath.isFile()) {
-                Log.e("Dictionaries", "sourceDir is not a file: " + sourceDir)
-                return null
-            }
-
-            return AssetFileAddress(sourceDir, afd.startOffset, afd.length)
-        } catch (e: NotFoundException) {
-            Log.e("Dictionaries", "Could not find the resource")
-            return null
-        } finally {
-            if (afd != null) {
-                try {
-                    afd.close()
-                } catch (e: IOException) {
-                    /* IOException on close ? What am I supposed to do ? */
+            if (resId != 0) {
+                afd = try {
+                    context.resources.openRawResourceFd(resId)
+                } catch (e: NotFoundException) {
+                    null
+                }
+                if (afd != null) {
+                    val sourceDir = context.getApplicationInfo().sourceDir
+                    val packagePath = File(sourceDir)
+                    if (packagePath.isFile()) {
+                        return AssetFileAddress(sourceDir, afd.startOffset, afd.length)
+                    }
                 }
             }
+        } catch (e: Exception) {
+            Log.e("Dictionaries", "Error reading main dict", e)
+        } finally {
+            if (afd != null) {
+                try { afd.close() } catch (_: IOException) {}
+            }
         }
+
+        // Fall back to trying each built-in dictionary in turn
+        return getAnyFallbackDictionary(context)
     }
 }
