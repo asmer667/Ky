@@ -275,7 +275,6 @@ android {
                 it.buildConfigField "String", "ACRA_PASSWORD", "\"\""
             }
 
-            //it.buildConfigField "String", "FUTOPAY_URL", "\"https://pay.futo.org/api/PaymentPortal?product=voiceinput&success=futo-keyboard%3a%2f%2flicense%2factivate\""
             it.buildConfigField "String", "FUTOPAY_URL", "\"https://pay2.futo.org/checkout/polar/futo-keyboard/futo-keyboard-voiceinput/checkout-ready?success=redirect-to-organization-page\""
             it.buildConfigField "String", "FUTOPAY_PRICE", "\"~\$6.99\""
 
@@ -373,7 +372,11 @@ android {
     }
 
     aaptOptions {
+        // Do not compress dictionary, bin, or GGUF files. We need them uncompressed so
+        // that they can be memory-mapped at runtime via AssetFileAddress offsets.
         noCompress 'dict'
+        noCompress 'bin'
+        noCompress 'gguf'
     }
 
     packagingOptions {
@@ -436,24 +439,21 @@ dependencies {
 
     implementation 'sh.calvin.reorderable:reorderable:3.0.0'
 
-    //implementation 'com.squareup.okhttp3:okhttp:4.11.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.7.1'
 
     implementation 'com.akuleshov7:ktoml-core:0.7.1'
-
-    //def work_version = "2.9.0"
-    //implementation "androidx.work:work-runtime-ktx:$work_version"
-    //implementation "androidx.work:work-runtime:$work_version"
 
     implementation project(":voiceinput-shared")
 
     implementation "com.charleskorn.kaml:kaml:0.61.0"
 
     // For MOZC
-    implementation 'com.google.protobuf:protobuf-javalite:3.8.0'
-    implementation 'com.google.guava:guava:33.4.8-android'
-    implementation(name:'mozc-release', ext:'aar')
+    // Note: mozc-release.aar is not bundled in this build, so these deps have been removed.
+    // The Mozc-related features (Japanese IME) are disabled.
+    // implementation 'com.google.protobuf:protobuf-javalite:3.8.0'
+    // implementation 'com.google.guava:guava:33.4.8-android'
+    // implementation(name:'mozc-release', ext:'aar')
     // End for MOZC
 
     // For RIME
