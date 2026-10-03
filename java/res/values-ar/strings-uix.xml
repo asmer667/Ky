@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="editing_tools_select">تحديد</string>
+    <string name="editing_tools_delete">مسح</string>
+    <string name="editing_tools_copy">نسخ</string>
+    <string name="editing_tools_paste">لصق</string>
+    <string name="keyboard_settings_show_editing_tools_row">إظهار صف أدوات التحرير</string>
+    <string name="keyboard_settings_show_editing_tools_row_subtitle">إظهار أزرار تحديد ومسح ونسخ ولصق معًا.</string>
+</resources>
