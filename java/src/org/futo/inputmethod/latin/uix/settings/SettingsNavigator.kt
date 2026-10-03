@@ -144,7 +144,6 @@ fun SettingsNavigator(
                     PersonalDictionaryLanguageListForLocale(nav, it, route.lang?.toLocale())
                 }
                 dialog<Route.PersonalDictWord> { WordPopupDialogF(it.word, it.lang?.toLocale()) }
-                dialog<Route.PersonalDictDelete> { ConfirmDeleteExtraDictFileDialog(it.dict) }
 
                 composable<Route.DevLayoutEdit> { DevLayoutEdit(nav, it.i) }
 
