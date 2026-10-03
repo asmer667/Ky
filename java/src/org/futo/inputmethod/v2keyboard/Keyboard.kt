@@ -151,11 +151,11 @@ val EditingToolsRow = Row(
             attributes = KeyAttributes(width = KeyWidth.Grow, style = KeyVisualStyle.Functional, showPopup = false, moreKeyMode = MoreKeyMode.OnlyExplicit, repeatableEnabled = true)
         ),
         BaseKey(
-            spec = "!string/editing_tools_copy|!code/action_copy",
+            spec = "!string/editing_tools_paste|!code/action_paste",
             attributes = KeyAttributes(width = KeyWidth.Grow, style = KeyVisualStyle.Functional, showPopup = false, moreKeyMode = MoreKeyMode.OnlyExplicit)
         ),
         BaseKey(
-            spec = "!string/editing_tools_paste|!code/action_paste",
+            spec = "!string/editing_tools_copy|!code/action_copy",
             attributes = KeyAttributes(width = KeyWidth.Grow, style = KeyVisualStyle.Functional, showPopup = false, moreKeyMode = MoreKeyMode.OnlyExplicit)
         ),
     ),
