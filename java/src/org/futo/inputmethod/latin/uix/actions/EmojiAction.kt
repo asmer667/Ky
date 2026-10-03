@@ -92,7 +92,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -121,11 +120,7 @@ import org.futo.inputmethod.latin.uix.theme.LocalCompatEmojiTypeface
 import org.futo.inputmethod.latin.uix.theme.Typography
 import org.futo.inputmethod.latin.uix.theme.emojiNeedsCompat
 import org.futo.inputmethod.latin.uix.theme.emojiShouldShow
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.nio.charset.StandardCharsets
 import java.util.Locale
-import java.util.zip.GZIPInputStream
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -977,55 +972,8 @@ class PersistentEmojiState : PersistentActionState {
                 GlobalScope.launch(Dispatchers.IO) { loadEmojis(context) }
             }
 
-            GlobalScope.launch(Dispatchers.IO) {
-                val inputStream = GZIPInputStream(context.resources.openRawResource(R.raw.emoji_i18n))
-
-                var data: JsonObject? = null
-                BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8)).use { reader ->
-                    while (true) {
-                        val line = reader.readLine()
-                        if (line == null) break
-                        if (line.startsWith("#")) {
-                            val lineLanguage = line.substring(1).trim()
-                            if (lineLanguage == language) {
-                                val jsonLine = reader.readLine()
-                                data = Json.parseToJsonElement(jsonLine).jsonObject
-                                break
-                            }
-                        }
-                    }
-                }
-
-                if (data != null) {
-                    val translations = data.map { entry ->
-                        val names = entry.value.jsonArray.map { it.jsonPrimitive.content }
-                        entry.key to EmojiNames(names)
-                    }.toMap()
-                    loadedTranslations.put(language, EmojiTranslations(translations))
-
-                    // Shortcuts are unique words
-                    val wordCounts = hashMapOf<String, Int>()
-                    val words = translations.values.flatMap { it.names.flatMap { it.split(" ") }.toSet() }
-                    words.forEach {
-                        wordCounts[it] = (wordCounts[it] ?: 0) + 1
-                    }
-
-                    val aliases = translations.flatMap { entry ->
-                        val ttsName = entry.value.names.last()
-
-                        val names = entry.value.names.flatMap { it.split(" ") }
-                        names.filter { wordCounts[it] == 1 && it.length > 1 }.map { it.lowercase() to entry.key } +
-                                if(!ttsName.contains(' ')) {
-                                    listOf(ttsName.lowercase() to entry.key)
-                                } else {
-                                    emptyList()
-                                }
-                    }.reversed().toMap()
-
-                    if(language != "en") loadedTranslatedShortcuts.put(language, aliases)
-                }
-            }
-
+            // Note: emoji_i18n resource is not bundled in this build.
+            // Only English translations from gemoji are supported.
         }
 
         @JvmStatic

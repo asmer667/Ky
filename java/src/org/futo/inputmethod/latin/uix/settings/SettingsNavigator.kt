@@ -61,7 +61,6 @@ import org.futo.inputmethod.latin.uix.settings.pages.TypingSettingsMenu
 import org.futo.inputmethod.latin.uix.settings.pages.VoiceInputMenu
 import org.futo.inputmethod.latin.uix.settings.pages.addModelManagerNavigation
 import org.futo.inputmethod.latin.uix.settings.pages.buggyeditors.BuggyTextEditVariations
-import org.futo.inputmethod.latin.uix.settings.pages.pdict.ConfirmDeleteExtraDictFileDialog
 import org.futo.inputmethod.latin.uix.settings.pages.pdict.PersonalDictionaryLanguageList
 import org.futo.inputmethod.latin.uix.settings.pages.pdict.PersonalDictionaryLanguageListForLocale
 import org.futo.inputmethod.latin.uix.settings.pages.pdict.WordPopupDialogF
@@ -145,7 +144,6 @@ fun SettingsNavigator(
                     PersonalDictionaryLanguageListForLocale(nav, it, route.lang?.toLocale())
                 }
                 dialog<Route.PersonalDictWord> { WordPopupDialogF(it.word, it.lang?.toLocale()) }
-                dialog<Route.PersonalDictDelete> { ConfirmDeleteExtraDictFileDialog(it.dict) }
 
                 composable<Route.DevLayoutEdit> { DevLayoutEdit(nav, it.i) }
 

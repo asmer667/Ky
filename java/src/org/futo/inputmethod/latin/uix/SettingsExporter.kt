@@ -1,7 +1,6 @@
 package org.futo.inputmethod.latin.uix
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -35,8 +34,6 @@ import okio.sink
 import okio.source
 import org.futo.inputmethod.engine.GlobalIMEMessage
 import org.futo.inputmethod.engine.IMEMessage
-import org.futo.inputmethod.engine.general.ChineseIME
-import org.futo.inputmethod.engine.general.mozcUserProfileDir
 import org.futo.inputmethod.latin.R
 import org.futo.inputmethod.latin.utils.readAllBytesCompat
 import org.futo.inputmethod.latin.uix.PreferenceUtils.getDefaultSharedPreferences
@@ -277,26 +274,6 @@ object SettingsExporter {
             zipOut.closeEntry()
         }
 
-        // Collect mozc (Japanese user typing history, etc)
-        mozcUserProfileDir(context).listFiles()?.forEach { subfile ->
-            assert(!subfile.isDirectory)
-            val entry = ZipEntry("mozc/${subfile.name}")
-            zipOut.putNextEntry(entry)
-            subfile.inputStream().use { it.copyTo(zipOut) }
-            zipOut.closeEntry()
-        }
-
-        // Collect RIME (Chinese user typing history, etc)
-        val rimeDir = ChineseIME.getRimeDir(context)
-        rimeDir.walk().filter { it.isFile }.forEach { subfile ->
-            val rel = subfile.toRelativeString(rimeDir)
-
-            val entry = ZipEntry("rime/$rel")
-            zipOut.putNextEntry(entry)
-            subfile.inputStream().use { it.copyTo(zipOut) }
-            zipOut.closeEntry()
-        }
-
         // Collect themes
         ZipThemes.customThemesDir(context).listFiles()?.forEach { themeFile ->
             zipOut.putNextEntry(ZipEntry("themes/${themeFile.name}"))
@@ -342,8 +319,6 @@ object SettingsExporter {
             }
 
             context.clipboardDir.deleteRecursively()
-            ChineseIME.getRimeDir(context).deleteRecursively()
-            mozcUserProfileDir(context).deleteRecursively()
 
             // delete all themes
             ZipThemes.customThemesDir(context).listFiles()?.forEach { it.delete() }
@@ -411,31 +386,6 @@ object SettingsExporter {
                     val clipboardDir = context.clipboardDir
                     clipboardDir.mkdirs()
                     File(clipboardDir, relDir).outputStream().use {
-                        zipIn.copyTo(it)
-                    }
-                }
-
-
-                entry.name.startsWith("mozc/") -> {
-                    val relDir = entry.name.splitSlash()
-
-                    assert(!relDir.contains('/'))
-
-                    val userProfileDir = mozcUserProfileDir(context)
-                    userProfileDir.mkdirs()
-                    File(userProfileDir, relDir).outputStream().use {
-                        zipIn.copyTo(it)
-                    }
-                }
-
-                entry.name.startsWith("rime/") -> {
-                    val relDir = entry.name.splitSlash()
-                    val rimeDir = ChineseIME.getRimeDir(context)
-
-                    val targetFile = File(rimeDir, relDir)
-                    targetFile.parentFile!!.mkdirs()
-
-                    targetFile.outputStream().use {
                         zipIn.copyTo(it)
                     }
                 }

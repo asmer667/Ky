@@ -1,6 +1,5 @@
 package org.futo.inputmethod.latin.uix.settings.pages.pdict
 
-import android.app.Activity
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -55,7 +54,6 @@ import org.futo.inputmethod.latin.uix.settings.ScreenTitle
 import org.futo.inputmethod.latin.uix.settings.ScrollableList
 import org.futo.inputmethod.latin.uix.settings.useDataStoreValue
 import java.util.Locale
-import kotlin.collections.get
 
 private data class ExceptionalPersonalDictionaryViewConfiguration(
     val supported: Boolean,
@@ -64,13 +62,7 @@ private data class ExceptionalPersonalDictionaryViewConfiguration(
 )
 
 private val ExceptionalPersonalDictionaryLanguages = mapOf(
-    "ja" to ExceptionalPersonalDictionaryViewConfiguration(
-        supported = true,
-        wordPopupDialog = { a, b -> JapaneseWordPopupDialog(a?.let { decodeJapanesePersonalWord(it) }, b) },
-        transformNavWord = { word -> decodeJapanesePersonalWord(word)?.let {
-            word.copy(word = it.output, shortcut = it.furigana)
-        } ?: word }
-    ),
+    "ja" to ExceptionalPersonalDictionaryViewConfiguration(supported = false),
     "zh" to ExceptionalPersonalDictionaryViewConfiguration(supported = false)
 )
 
@@ -283,6 +275,11 @@ fun PersonalDictionaryLanguageListForLocale(
             )
         }
     }
+}
+
+fun localeSupportsFileImport(locale: Locale?): Boolean {
+    val lang = locale?.language ?: return false
+    return lang == "ja" || lang == "ko" || lang == "zh"
 }
 
 @Composable
