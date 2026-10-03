@@ -1,51 +1,11 @@
 package org.futo.inputmethod.engine
 
-import androidx.compose.runtime.Composable
-import java.io.File
-
-// ===== IME Classes =====
-class ChineseIME {
-    companion object {
-        val mozcUserProfileDir: File = File("/dev/null")
-        fun debugInfo(): String = "disabled"
-        fun isEnabled(): Boolean = false
-        fun shutdown() {}
-        fun startup() {}
-    }
-}
-
-class JapaneseIME {
-    companion object {
-        fun debugInfo(): String = "disabled"
-        fun isEnabled(): Boolean = false
-        fun shutdown() {}
-        fun startup() {}
-    }
-}
-
-// ===== IME Settings =====
-object ChineseIMESettings {
-    const val title: String = "Chinese"
-    const val navPath: String = "chinese"
-    val visibilityCheck: () -> Boolean = { false }
-    @Composable fun menu() {}
-}
-
-object JapaneseIMESettings {
-    const val title: String = "Japanese"
-    const val navPath: String = "japanese"
-    val visibilityCheck: () -> Boolean = { false }
-    @Composable fun menu() {}
-}
-
-// ===== Personal Dictionary Helpers =====
-@Composable
-fun JapaneseWordPopupDialog(word: Any?) {}
-
-fun decodeJapanesePersonalWord(input: String): Pair<String, String> = Pair("", "")
-
-fun localeSupportsFileImport(locale: String): Boolean = false
-
-// ===== Extra Dialog =====
-@Composable
-fun ConfirmDeleteExtraDictFileDialog() {}
+// This file is intentionally left empty.
+//
+// All mozc / ChineseIME / JapaneseIME / Rime dependencies have been
+// removed from the project. The relevant classes and helper functions
+// were either deleted from the codebase or replaced with inline
+// implementations in the files that used them.
+//
+// This file exists only to document the change and to prevent accidental
+// re-introduction of the old stub classes.
