@@ -22,9 +22,6 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Explore repo structure
         run: |
           cd vad-source
@@ -36,6 +33,14 @@ jobs:
           cat settings.gradle.kts 2>/dev/null || echo "not found"
           echo "=== All modules ==="
           find . -name "build.gradle" -o -name "build.gradle.kts" | head -20
+
+      - name: Setup Android SDK
+        run: |
+          SDK_ROOT="/usr/local/lib/android/sdk"
+          echo "SDK_ROOT=$SDK_ROOT"
+          ls $SDK_ROOT || true
+          export PATH="$SDK_ROOT/cmdline-tools/latest/bin:$SDK_ROOT/cmdline-tools/16.0/bin:$PATH"
+          which sdkmanager || true
 
       - name: Build VAD AAR
         run: |
@@ -50,7 +55,6 @@ jobs:
         if: success()
         run: |
           mkdir -p output
-          find vad-source -name "*.aar" -path "*release*" -exec cp {} output/vad-release.aar \;
           find vad-source -name "*.aar" -exec cp {} output/ \;
           ls -la output/
 
