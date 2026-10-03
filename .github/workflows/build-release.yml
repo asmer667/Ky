@@ -1,78 +1,179 @@
-name: Build FUTO Keyboard (arm64)
+name: Build All FUTO AARs
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ "main", "master" ]
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04
+  build-aars:
+    runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
 
     steps:
-      - name: Checkout repository and submodules
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: recursive
-          lfs: true
-
-      - name: Install Git LFS and fetch submodule binaries
-        shell: bash
-        run: |
-          git lfs install --local || true
-          git submodule sync --recursive || true
-          git submodule update --init --recursive || true
-          git submodule foreach --recursive 'git lfs install --local || true; git lfs pull || true' || true
-
-      - name: Set up JDK 17
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
-      - name: Install Android SDK components
-        shell: bash
+      - name: Setup Android SDK
         run: |
-          set -x
-          SDK_ROOT="$ANDROID_SDK_ROOT"
-          if [ -z "$SDK_ROOT" ]; then SDK_ROOT="$ANDROID_HOME"; fi
-          if [ -z "$SDK_ROOT" ]; then SDK_ROOT="/usr/local/lib/android/sdk"; fi
+          SDK_ROOT="/usr/local/lib/android/sdk"
           echo "SDK_ROOT=$SDK_ROOT"
+          echo "$SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$SDK_ROOT/cmdline-tools/16.0/bin" >> $GITHUB_PATH
+          echo "ANDROID_HOME=$SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> $GITHUB_ENV
           export PATH="$SDK_ROOT/cmdline-tools/latest/bin:$SDK_ROOT/cmdline-tools/16.0/bin:$PATH"
-          yes | sdkmanager --licenses || true
-          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.2.13676358" --verbose
+          yes | sdkmanager --licenses 2>/dev/null || true
+          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.2.13676358" 2>&1 | tail -10 || true
+          echo "ANDROID_NDK_HOME=$SDK_ROOT/ndk/28.2.13676358" >> $GITHUB_ENV
+          ls -la $SDK_ROOT/ndk/ || true
 
-      - name: Patch build.gradle to remove missing AAR deps
-        shell: bash
+      - name: Prepare output folder
+        run: mkdir -p output
+
+      # ============================================================
+      # 1) VAD - from abb128/android-vad
+      # ============================================================
+      - name: "[1/4] Clone VAD"
         run: |
-          echo "--- BEFORE ---"
-          grep -n "mozc\|rime\|futo-swipe" build.gradle || true
+          echo "=== Cloning abb128/android-vad ==="
+          git clone --depth 1 https://github.com/abb128/android-vad.git vad-source 2>&1 | tail -5
+          ls -la vad-source
 
-          sed -i "/implementation(name:'mozc-release', ext:'aar')/d" build.gradle
-          sed -i "/implementation files('libs\/rime-release.aar')/d" build.gradle
-          sed -i "/implementation files('libs\/futo-swipe-release.aar')/d" build.gradle
-
-          echo "--- AFTER ---"
-          grep -n "mozc\|rime\|futo-swipe" build.gradle || echo "None"
-
-      - name: Build stable release (arm64-v8a)
-        env:
-          VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: 1.0.${{ github.run_number }}
-          BRANCH_NAME: ${{ github.ref_name }}
-        shell: bash
+      - name: "[1/4] Build VAD AAR"
         run: |
-          chmod +x ./gradlew
-          ./gradlew --no-daemon --stacktrace assembleStableRelease
+          cd vad-source
+          chmod +x gradlew
+          ./gradlew :vad:assembleRelease --stacktrace 2>&1 | tail -30
 
-      - name: Upload APK
+      - name: "[1/4] Copy VAD AAR"
+        run: |
+          find vad-source -name "*.aar" -exec ls -la {} \;
+          find vad-source -name "vad-release.aar" -exec cp {} output/ \;
+          ls -la output/ || echo "No VAD AAR produced"
+
+      # ============================================================
+      # 2) Mozc - from google/mozc
+      # ============================================================
+      - name: "[2/4] Clone Mozc"
+        run: |
+          echo "=== Cloning google/mozc ==="
+          git clone --depth 1 --recursive https://github.com/google/mozc.git mozc-source 2>&1 | tail -5 || echo "MOZC_CLONE_FAILED"
+          ls -la mozc-source 2>/dev/null | head -20 || echo "MOZC_FOLDER_MISSING"
+
+      - name: "[2/4] Inspect Mozc structure"
+        run: |
+          cd mozc-source 2>/dev/null || exit 0
+          echo "=== Root ==="
+          ls -la
+          echo "=== Search for android build ==="
+          find . -name "BUILD.bazel" -path "*android*" 2>/dev/null | head -10
+          find . -name "*.aar" 2>/dev/null | head -5
+          echo "=== Bazel available? ==="
+          which bazelisk || echo "no bazelisk"
+
+      - name: "[2/4] Try building Mozc"
+        run: |
+          cd mozc-source 2>/dev/null || exit 0
+          # Bazel setup
+          wget -q -O /usr/local/bin/bazelisk https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64
+          chmod +x /usr/local/bin/bazelisk
+          cd src 2>/dev/null || exit 0
+          python3 build_tools/update_deps.py 2>&1 | tail -10 || echo "UPDATE_DEPS_FAILED"
+          bazelisk build package --config oss_android --config release_build 2>&1 | tail -30 || echo "MOZC_BUILD_FAILED"
+
+      - name: "[2/4] Copy Mozc AAR"
+        run: |
+          find mozc-source -name "*.aar" -exec ls -la {} \; 2>/dev/null || true
+          find mozc-source -name "mozc-release.aar" -exec cp {} output/ \; 2>/dev/null || true
+          find mozc-source -name "*.aar" -exec cp {} output/ \; 2>/dev/null || true
+          ls -la output/ || echo "No Mozc AAR produced"
+
+      # ============================================================
+      # 3) Rime - from gitlab.futo.org (may fail)
+      # ============================================================
+      - name: "[3/4] Clone RimeJni"
+        run: |
+          echo "=== Cloning gitlab.futo.org/keyboard/RimeJni ==="
+          git clone --depth 1 --recursive https://gitlab.futo.org/keyboard/RimeJni.git rime-source 2>&1 | tail -10 || echo "RIME_CLONE_FAILED"
+          ls -la rime-source 2>/dev/null | head -20 || echo "RIME_FOLDER_MISSING"
+
+      - name: "[3/4] Inspect Rime structure"
+        run: |
+          cd rime-source 2>/dev/null || exit 0
+          echo "=== Root ==="
+          ls -la
+          echo "=== Modules ==="
+          find . -name "build.gradle" -o -name "build.gradle.kts" | head -20
+          find . -name "settings.gradle*" -exec cat {} \;
+
+      - name: "[3/4] Try building Rime"
+        run: |
+          cd rime-source 2>/dev/null || exit 0
+          chmod +x gradlew 2>/dev/null || exit 0
+          ./gradlew assembleRelease --stacktrace 2>&1 | tail -30 || echo "RIME_BUILD_FAILED"
+
+      - name: "[3/4] Copy Rime AAR"
+        run: |
+          find rime-source -name "*.aar" -exec ls -la {} \; 2>/dev/null || true
+          find rime-source -name "rime-release.aar" -exec cp {} output/ \; 2>/dev/null || true
+          find rime-source -name "*.aar" -exec cp {} output/ \; 2>/dev/null || true
+          ls -la output/
+
+      # ============================================================
+      # 4) FUTO Swipe - from gitlab.futo.org (may fail)
+      # ============================================================
+      - name: "[4/4] Clone Swipe Library"
+        run: |
+          echo "=== Cloning gitlab.futo.org/keyboard/swipe-library ==="
+          git clone --depth 1 --recursive https://gitlab.futo.org/keyboard/swipe-library.git swipe-source 2>&1 | tail -10 || echo "SWIPE_CLONE_FAILED"
+          ls -la swipe-source 2>/dev/null | head -20 || echo "SWIPE_FOLDER_MISSING"
+
+      - name: "[4/4] Inspect Swipe structure"
+        run: |
+          cd swipe-source 2>/dev/null || exit 0
+          echo "=== Root ==="
+          ls -la
+          find . -name "build.gradle" -o -name "build.gradle.kts" | head -20
+
+      - name: "[4/4] Try building Swipe"
+        run: |
+          cd swipe-source 2>/dev/null || exit 0
+          chmod +x gradlew 2>/dev/null || exit 0
+          ./gradlew assembleRelease --stacktrace 2>&1 | tail -30 || echo "SWIPE_BUILD_FAILED"
+
+      - name: "[4/4] Copy Swipe AAR"
+        run: |
+          find swipe-source -name "*.aar" -exec ls -la {} \; 2>/dev/null || true
+          find swipe-source -name "futo-swipe-release.aar" -exec cp {} output/ \; 2>/dev/null || true
+          find swipe-source -name "*.aar" -exec cp {} output/ \; 2>/dev/null || true
+
+      # ============================================================
+      # Final Report
+      # ============================================================
+      - name: "Final Report - List all AARs"
+        run: |
+          echo "=========================================="
+          echo "FINAL OUTPUT FOLDER:"
+          echo "=========================================="
+          ls -la output/ || echo "empty"
+          echo "=========================================="
+          echo "SUMMARY:"
+          echo "=========================================="
+          for f in vad-release.aar mozc-release.aar rime-release.aar futo-swipe-release.aar; do
+            if [ -f "output/$f" ]; then
+              echo "✅ $f: FOUND"
+              ls -la "output/$f"
+            else
+              echo "❌ $f: MISSING"
+            fi
+          done
+
+      - name: Upload all AARs
         uses: actions/upload-artifact@v4
-        if: success()
         with:
-          name: futo-keyboard-arm64-release-${{ github.run_number }}
-          path: '**/build/outputs/apk/*release/*.apk'
+          name: all-aars
+          path: output/*.aar
           if-no-files-found: warn
