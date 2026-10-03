@@ -1,60 +1,20 @@
 package org.futo.inputmethod.engine
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import org.futo.inputmethod.engine.general.ChineseIMESettings
-import org.futo.inputmethod.engine.general.JapaneseIMESettings
-import org.futo.inputmethod.latin.R
-import org.futo.inputmethod.latin.Subtypes
-import org.futo.inputmethod.latin.SubtypesSetting
-import org.futo.inputmethod.latin.uix.settings.NavigationItemStyle
 import org.futo.inputmethod.latin.uix.settings.UserSettingsMenu
-import org.futo.inputmethod.latin.uix.settings.useDataStoreValue
-import org.futo.inputmethod.latin.uix.settings.userSettingNavigationItem
+
+// Chinese and Japanese IME settings are disabled in this build
+// (because mozc-lib is not available)
+
+val SettingsByLanguage = emptyMap<String, UserSettingsMenu>()
 
 @Composable
-private fun isVisible(language: String): Boolean {
-    val subtypeSet = useDataStoreValue(SubtypesSetting)
-    return remember(subtypeSet) {
-        subtypeSet.any {
-            Subtypes.getLocale(Subtypes.convertToSubtype(it).locale).language == language
-        }
-    }
-}
-
-val SettingsByLanguage = mapOf(
-    "zh" to ChineseIMESettings.menu.copy(visibilityCheck = { isVisible("zh") }),
-    "ja" to JapaneseIMESettings.menu.copy(visibilityCheck = { isVisible("ja") })
-)
-
-@Composable
-private fun anyVisible(): Boolean {
-    val subtypeSet = useDataStoreValue(SubtypesSetting)
-    return remember(subtypeSet) {
-        subtypeSet.any {
-            SettingsByLanguage.containsKey(Subtypes.getLocale(Subtypes.convertToSubtype(it).locale).language)
-        }
-    }
-}
-
-private val IMESettings = buildList {
-    SettingsByLanguage.forEach {
-        add(
-            userSettingNavigationItem(
-                title = it.value.title,
-                style = NavigationItemStyle.HomePrimary,
-                icon = R.drawable.globe,
-                navigateTo = it.value.navPath,
-            ).copy(
-                visibilityCheck = it.value.visibilityCheck,
-                appearInSearchIfVisibilityCheckFailed = false
-            )
-        )
-    }
-}
+private fun anyVisible(): Boolean = false
 
 val IMESettingsMenu = UserSettingsMenu(
-    title = R.string.language_specific_settings_title,
-    navPath = "ime", registerNavPath = true,
-    settings = IMESettings, visibilityCheck = { anyVisible() }
+    title = 0,
+    navPath = "ime",
+    registerNavPath = false,
+    settings = emptyList(),
+    visibilityCheck = { false }
 )
