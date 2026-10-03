@@ -219,9 +219,11 @@ final public class BinaryDictionaryGetter {
         }
 
         if (!foundMainDict && dictPackSettings.isWordListActive(mainDictId)) {
-            AssetFileAddress asset = Dictionaries.INSTANCE.getDictionaryIfExists(context, locale, Dictionaries.DictionaryKind.BinaryDictionary);
-            if(asset == null && fallback) {
-                asset = Dictionaries.INSTANCE.getFallbackDictionary(context);
+            AssetFileAddress asset = Dictionaries.INSTANCE.getDictionaryIfExists(
+                    context, locale, Dictionaries.DictionaryKind.BinaryDictionary);
+            if (asset == null && fallback) {
+                // Pass the locale so we can pick main_ar.dict / main_en.dict / etc.
+                asset = Dictionaries.INSTANCE.getFallbackDictionary(context, locale);
             }
 
             if (null != asset) {
