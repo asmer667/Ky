@@ -509,6 +509,22 @@ class UixActionKeyboardManager(val uixManager: UixManager, val latinIME: LatinIM
     }
 
     override fun copyToClipboard(cut: Boolean) {
+        // Try to use the InputConnection's native context menu action first.
+        // This works reliably across all languages (including Arabic), unlike
+        // Ctrl+C / Ctrl+X key events which only work with the Latin general IME.
+        val ic = latinIME.currentInputConnection
+        if(ic != null) {
+            try {
+                val actionId = if(cut) android.R.id.cut else android.R.id.copy
+                if(ic.performContextMenuAction(actionId)) {
+                    return
+                }
+            } catch (e: Exception) {
+                Log.w("UixManager", "performContextMenuAction(${if(cut) "cut" else "copy"}) failed", e)
+            }
+        }
+
+        // Fallback to keyboard shortcuts
         if(cut) {
             sendKeyEvent(KeyEvent.KEYCODE_X, KeyEvent.META_CTRL_ON)
         } else {
@@ -517,8 +533,34 @@ class UixActionKeyboardManager(val uixManager: UixManager, val latinIME: LatinIM
     }
 
     override fun pasteFromClipboard() {
+        val ic = latinIME.currentInputConnection
+        if(ic != null) {
+            try {
+                if(ic.performContextMenuAction(android.R.id.paste)) {
+                    uixManager.dismissQuickClips()
+                    return
+                }
+            } catch (e: Exception) {
+                Log.w("UixManager", "performContextMenuAction(paste) failed", e)
+            }
+        }
+
+        // Fallback to keyboard shortcuts
         sendKeyEvent(KeyEvent.KEYCODE_V, KeyEvent.META_CTRL_ON)
         uixManager.dismissQuickClips()
+    }
+
+    override fun selectAllFromInputConnection(): Boolean {
+        val ic = latinIME.currentInputConnection
+        if(ic != null) {
+            try {
+                return ic.performContextMenuAction(android.R.id.selectAll)
+            } catch (e: Exception) {
+                Log.w("UixManager", "performContextMenuAction(selectAll) failed", e)
+                return false
+            }
+        }
+        return false
     }
 
     override fun getSizingCalculator(): KeyboardSizingCalculator =
@@ -1715,5 +1757,3 @@ class UixManager(private val latinIME: LatinIME) {
     val extraTopTouchHeight: Int
         get() = if(floatingPreeditShown) floatingPreeditHeight.value else 0
 }
-
-
