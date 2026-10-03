@@ -1,99 +1,62 @@
-name: Build FUTO Keyboard (arm64)
+name: Build VAD AAR
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ "main", "master" ]
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04
+  build-vad:
+    runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
 
     steps:
-      - name: Checkout repository and submodules
+      - name: Checkout VAD source
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          submodules: recursive
-          lfs: true
-
-      - name: Install Git LFS and fetch submodule binaries
-        shell: bash
-        run: |
-          git lfs install --local || true
-          git submodule sync --recursive || true
-          git submodule update --init --recursive || true
-          git submodule foreach --recursive 'git lfs install --local || true; git lfs pull || true' || true
-
-      - name: Show what is available
-        shell: bash
-        run: |
-          echo "--- libs ---"
-          find libs -maxdepth 2 -type f -printf '%p %s bytes\n' 2>/dev/null | sort || echo "libs folder not found"
-          echo "--- voice models ---"
-          find voiceinput-shared/src/main/ml -maxdepth 2 -type f 2>/dev/null | head -50 || echo "voice models folder not found"
+          repository: abb128/android-vad
+          path: vad-source
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
-      - name: Install Android SDK components
-        shell: bash
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Explore repo structure
         run: |
-          set -x
-          SDK_ROOT="$ANDROID_SDK_ROOT"
-          if [ -z "$SDK_ROOT" ]; then SDK_ROOT="$ANDROID_HOME"; fi
-          if [ -z "$SDK_ROOT" ]; then SDK_ROOT="/usr/local/lib/android/sdk"; fi
-          echo "SDK_ROOT=$SDK_ROOT"
-          export PATH="$SDK_ROOT/cmdline-tools/latest/bin:$SDK_ROOT/cmdline-tools/16.0/bin:$PATH"
-          yes | sdkmanager --licenses || true
-          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.2.13676358" || \
-          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.2.13676358" --verbose
+          cd vad-source
+          echo "=== Root files ==="
+          ls -la
+          echo "=== settings.gradle ==="
+          cat settings.gradle 2>/dev/null || echo "not found"
+          echo "=== settings.gradle.kts ==="
+          cat settings.gradle.kts 2>/dev/null || echo "not found"
+          echo "=== All modules ==="
+          find . -name "build.gradle" -o -name "build.gradle.kts" | head -20
 
-      - name: Patch build.gradle to remove missing AAR deps
-        shell: bash
+      - name: Build VAD AAR
         run: |
-          echo "--- BEFORE (build.gradle) ---"
-          grep -n "mozc\|vad\|rime\|futo-swipe" build.gradle || true
-          echo "--- BEFORE (voiceinput-shared/build.gradle) ---"
-          grep -n "vad" voiceinput-shared/build.gradle || true
+          cd vad-source
+          chmod +x gradlew
+          ./gradlew :vad:assembleRelease --stacktrace 2>&1 || \
+          ./gradlew assembleRelease --stacktrace 2>&1 || \
+          ./gradlew :library:assembleRelease --stacktrace 2>&1 || \
+          ./gradlew tasks --all 2>&1 | head -100
 
-          # احذف السطر الخاص بـ mozc من build.gradle الرئيسي
-          sed -i "/implementation(name:'mozc-release', ext:'aar')/d" build.gradle
-
-          # احذف السطر الخاص بـ rime من build.gradle الرئيسي
-          sed -i "/implementation files('libs\/rime-release.aar')/d" build.gradle
-
-          # احذف السطر الخاص بـ futo-swipe من build.gradle الرئيسي
-          sed -i "/implementation files('libs\/futo-swipe-release.aar')/d" build.gradle
-
-          # احذف السطر الخاص بـ vad من voiceinput-shared/build.gradle
-          sed -i "/implementation(name:'vad-release', ext:'aar')/d" voiceinput-shared/build.gradle
-
-          echo "--- AFTER (build.gradle) ---"
-          grep -n "mozc\|vad\|rime\|futo-swipe" build.gradle || echo "None"
-          echo "--- AFTER (voiceinput-shared/build.gradle) ---"
-          grep -n "vad" voiceinput-shared/build.gradle || echo "None"
-
-      - name: Build stable release (arm64-v8a)
-        env:
-          VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: 1.0.${{ github.run_number }}
-          BRANCH_NAME: ${{ github.ref_name }}
-        shell: bash
-        run: |
-          chmod +x ./gradlew
-          ./gradlew --no-daemon --stacktrace assembleStableRelease
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Find AAR
         if: success()
+        run: |
+          mkdir -p output
+          find vad-source -name "*.aar" -path "*release*" -exec cp {} output/vad-release.aar \;
+          find vad-source -name "*.aar" -exec cp {} output/ \;
+          ls -la output/
+
+      - name: Upload VAD AAR
+        if: success()
+        uses: actions/upload-artifact@v4
         with:
-          name: futo-keyboard-arm64-release-${{ github.run_number }}
-          path: '**/build/outputs/apk/*release/*.apk'
-          if-no-files-found: warn
+          name: vad-release-aar
+          path: output/*.aar
