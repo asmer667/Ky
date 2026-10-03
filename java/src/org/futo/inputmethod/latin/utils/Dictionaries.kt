@@ -28,19 +28,27 @@ object Dictionaries {
     }
 
     /**
-     * All built-in dictionary resource IDs extracted from the official FUTO Keyboard APK.
-     * When a language-specific dictionary isn't found, we try each of these in order.
-     * The first one that can be opened by BinaryDictionary will be used.
+     * Returns the fallback dictionary resource ID for a given locale.
+     * Priority:
+     *   1. main_<locale>.dict  (e.g. main_ar.dict for Arabic)
+     *   2. main_en.dict        (fallback for languages without a built-in dict)
+     *   3. main.dict           (legacy empty)
      */
-    private val fallbackDictionaryResources = listOf(
-        R.raw.dict_tw,
-        R.raw.dict_w4,
-        R.raw.dict_kk,
-        R.raw.dict_pm,
-        R.raw.dict_4s,
-        R.raw.dict_3u,
-        R.raw.dict_yz,
-    )
+    private fun fallbackResourceIdForLocale(locale: Locale?): Int {
+        val lang = locale?.language ?: "en"
+        return when (lang) {
+            "ar" -> R.raw.main_ar
+            "en" -> R.raw.main_en
+            "de" -> R.raw.main_de
+            "es" -> R.raw.main_es
+            "fr" -> R.raw.main_fr
+            "it" -> R.raw.main_it
+            "pt" -> R.raw.main_pt_br
+            "ru" -> R.raw.main_ru
+            // For all other languages, fall back to English.
+            else -> R.raw.main_en
+        }
+    }
 
     fun getDictionaryIfExists(context: Context, locale: Locale?, kind: DictionaryKind): AssetFileAddress? {
         if(locale == null) return null
@@ -51,33 +59,40 @@ object Dictionaries {
     }
 
     /**
-     * Tries to open each built-in dictionary in [fallbackDictionaryResources] in order.
-     * Returns the first one that could be opened successfully.
+     * Opens the fallback dictionary for the given locale.
      */
-    fun getAnyFallbackDictionary(context: Context): AssetFileAddress? {
-        for (resId in fallbackDictionaryResources) {
-            try {
-                val afd = context.resources.openRawResourceFd(resId) ?: continue
-                try {
+    fun getFallbackDictionary(context: Context, locale: Locale? = null): AssetFileAddress? {
+        val resId = fallbackResourceIdForLocale(locale)
+
+        var afd: AssetFileDescriptor? = null
+        try {
+            if (resId != 0) {
+                afd = try {
+                    context.resources.openRawResourceFd(resId)
+                } catch (e: NotFoundException) {
+                    null
+                }
+                if (afd != null) {
                     val sourceDir = context.getApplicationInfo().sourceDir
                     val packagePath = File(sourceDir)
-                    if (!packagePath.isFile()) continue
-                    return AssetFileAddress(sourceDir, afd.startOffset, afd.length)
-                } finally {
-                    try { afd.close() } catch (_: IOException) {}
+                    if (packagePath.isFile()) {
+                        return AssetFileAddress(sourceDir, afd.startOffset, afd.length)
+                    }
                 }
-            } catch (e: NotFoundException) {
-                continue
-            } catch (e: Exception) {
-                Log.w("Dictionaries", "Failed to open dict resource $resId", e)
-                continue
+            }
+        } catch (e: Exception) {
+            Log.e("Dictionaries", "Error reading fallback dict for ${locale?.language}", e)
+        } finally {
+            if (afd != null) {
+                try { afd.close() } catch (_: IOException) {}
             }
         }
-        return null
+
+        // Last resort: try the legacy main.dict
+        return getLegacyFallbackDictionary(context)
     }
 
-    fun getFallbackDictionary(context: Context): AssetFileAddress? {
-        // First, try the raw main dictionary (legacy behavior)
+    private fun getLegacyFallbackDictionary(context: Context): AssetFileAddress? {
         var afd: AssetFileDescriptor? = null
         try {
             val resId: Int = R.raw.main
@@ -96,14 +111,12 @@ object Dictionaries {
                 }
             }
         } catch (e: Exception) {
-            Log.e("Dictionaries", "Error reading main dict", e)
+            Log.e("Dictionaries", "Error reading legacy main dict", e)
         } finally {
             if (afd != null) {
                 try { afd.close() } catch (_: IOException) {}
             }
         }
-
-        // Fall back to trying each built-in dictionary in turn
-        return getAnyFallbackDictionary(context)
+        return null
     }
 }
