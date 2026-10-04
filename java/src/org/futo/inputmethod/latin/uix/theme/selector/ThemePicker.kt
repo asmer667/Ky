@@ -83,11 +83,11 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.foundation.VerticalScrollbar
-import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.imePadding
+import com.mohamedrejeb.calf.ui.scrollbar.VerticalScrollbar
+import com.mohamedrejeb.calf.ui.scrollbar.rememberScrollbarAdapter
 
 @Composable
 fun ThemePreview(theme: ThemeOption, isSelected: Boolean = false, overrideName: String? = null, modifier: Modifier = Modifier, onClick: () -> Unit = { }) {
@@ -432,12 +432,12 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
             }
         }
 
-        // ────── Scrollbar على اليمين ──────
+        // ────── Scrollbar (calf-ui) ──────
         VerticalScrollbar(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .fillMaxHeight()
-                .padding(end = 2.dp, top = 80.dp, bottom = 220.dp),
+                .padding(end = 2.dp, top = 80.dp, bottom = 200.dp),
             adapter = rememberScrollbarAdapter(gridState)
         )
 
@@ -477,7 +477,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
             }
         }
 
-        // ────── أزرار التنقل (أسفل اليسار) ──────
+        // ────── أزرار التنقل السريع (أسفل اليسار) ──────
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)

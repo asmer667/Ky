@@ -438,6 +438,7 @@ dependencies {
     unstableImplementation 'ch.acra:acra-dialog:5.11.1'
 
     implementation 'sh.calvin.reorderable:reorderable:3.0.0'
+    implementation 'com.mohamedrejeb.calf:calf-ui:0.4.0'
 
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.7.1'
