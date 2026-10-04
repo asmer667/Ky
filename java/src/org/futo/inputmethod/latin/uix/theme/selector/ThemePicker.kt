@@ -83,6 +83,11 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.VerticalScrollbar
+import androidx.compose.foundation.rememberScrollbarAdapter
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
 
 @Composable
 fun ThemePreview(theme: ThemeOption, isSelected: Boolean = false, overrideName: String? = null, modifier: Modifier = Modifier, onClick: () -> Unit = { }) {
@@ -368,7 +373,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                         Arrangement.Start
                     }
                 ) {
-                    // ⭐ Custom themes (يظهر أولاً دائماً)
+                    // ⭐ Custom themes
                     item(span = { GridItemSpan(maxCurrentLineSpan) }) {
                         ScreenTitle(
                             if (customThemes.isEmpty())
@@ -389,7 +394,6 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                         }
                     }
 
-                    // فاصل
                     item(span = { GridItemSpan(maxCurrentLineSpan) }) { }
 
                     // Default themes
@@ -428,13 +432,22 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
             }
         }
 
-        // ────── الأزرار العائمة ──────
+        // ────── Scrollbar على اليمين ──────
+        VerticalScrollbar(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .fillMaxHeight()
+                .padding(end = 2.dp, top = 80.dp, bottom = 220.dp),
+            adapter = rememberScrollbarAdapter(gridState)
+        )
 
-        // الأزرار الرئيسية (أسفل اليمين)
+        // ────── الأزرار الرئيسية (أسفل اليمين) ──────
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp),
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(end = 16.dp, bottom = 180.dp),
             horizontalAlignment = Alignment.End
         ) {
             FloatingActionButton(
@@ -464,14 +477,15 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
             }
         }
 
-        // أزرار التنقل السريع (أسفل اليسار)
+        // ────── أزرار التنقل (أسفل اليسار) ──────
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(16.dp),
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(start = 16.dp, bottom = 180.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            // زر التمرير للأعلى
             SmallFloatingActionButton(
                 onClick = {
                     scope.launch {
@@ -489,7 +503,6 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // زر التمرير للأسفل (آخر ثيم)
             SmallFloatingActionButton(
                 onClick = {
                     scope.launch {
