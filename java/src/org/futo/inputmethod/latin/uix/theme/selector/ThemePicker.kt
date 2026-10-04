@@ -366,7 +366,8 @@ fun CustomScrollbar(
 
     Box(
         modifier = modifier
-            .width(20.dp)
+            .width(24.dp)
+            .fillMaxHeight()
             .pointerInput(totalItems) {
                 detectDragGestures { change, dragAmount ->
                     change.consume()
@@ -387,15 +388,15 @@ fun CustomScrollbar(
             val thumbOffset = (trackHeight - thumbHeight) * scrollFraction
 
             drawRoundRect(
-                color = Color(0xFF4FC3F7).copy(alpha = 0.35f),
-                topLeft = Offset(trackWidth * 0.25f, 0f),
-                size = Size(trackWidth * 0.5f, trackHeight),
+                color = Color(0xFF4FC3F7).copy(alpha = 0.5f),
+                topLeft = Offset(trackWidth * 0.15f, 0f),
+                size = Size(trackWidth * 0.7f, trackHeight),
                 cornerRadius = CornerRadius(trackWidth * 0.25f)
             )
             drawRoundRect(
                 color = Color(0xFF4FC3F7),
-                topLeft = Offset(trackWidth * 0.15f, thumbOffset),
-                size = Size(trackWidth * 0.7f, thumbHeight),
+                topLeft = Offset(trackWidth * 0.05f, thumbOffset),
+                size = Size(trackWidth * 0.9f, thumbHeight),
                 cornerRadius = CornerRadius(trackWidth * 0.35f)
             )
         }
@@ -626,8 +627,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
             totalItems = totalItems,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .fillMaxHeight()
-                .padding(end = 2.dp, top = 80.dp, bottom = 200.dp)
+                .padding(end = 4.dp, top = 100.dp, bottom = 220.dp)
         )
 
         // ────── الأزرار الرئيسية (أسفل اليمين) ──────
