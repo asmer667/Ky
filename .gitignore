@@ -11,3 +11,9 @@ key.jks
 java/res/raw/mozc.data
 .cxx
 java/src/org/futo/inputmethod/keyboard/internal/KeyboardTextsTable.java
+# Development/testing scripts (local only)
+adham_theme/
+futo_themes/
+generate_themes.py
+make_theme.py
+build.log
