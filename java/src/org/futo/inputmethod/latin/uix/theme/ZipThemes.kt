@@ -31,6 +31,10 @@ import java.util.Date
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
+import android.net.Uri
+import android.provider.DocumentsContract
+import androidx.datastore.preferences.core.stringSetPreferencesKey
+import kotlin.random.Random
 
 object ZipThemes {
     val bitmapCache: MutableMap<String, ImageBitmap> = mutableMapOf()
@@ -56,6 +60,91 @@ object ZipThemes {
 
     val themeCache: MutableMap<ThemeFileName, KeyboardColorScheme> = mutableMapOf()
     val thumbThemeCache: MutableMap<ThemeFileName, KeyboardColorScheme> = mutableMapOf()
+
+
+// Favorites management
+val FavoriteThemesKey = SettingsKey(stringSetPreferencesKey("favorite_themes"), setOf())
+
+fun getFavorites(context: Context): Set<String> {
+    return runBlocking { context.getSetting(FavoriteThemesKey) }
+}
+
+fun toggleFavorite(context: Context, themeName: String) {
+    val current = getFavorites(context)
+    val updated = if (themeName in current) {
+        current - themeName
+    } else {
+        current + themeName
+    }
+    runBlocking { context.setSetting(FavoriteThemesKey, updated) }
+    updateCount.intValue += 1
+}
+
+fun isFavorite(context: Context, themeName: String): Boolean {
+    return themeName in getFavorites(context)
+}
+
+// Import folder of themes
+fun importThemeFolder(context: Context, folderUri: Uri): Pair<Int, Int> {
+    var successCount = 0
+    var failCount = 0
+    
+    try {
+        val contentResolver = context.contentResolver
+        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
+            folderUri,
+            DocumentsContract.getTreeDocumentId(folderUri)
+        )
+        
+        val cursor = contentResolver.query(
+            childrenUri,
+            arrayOf(
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID
+            ),
+            null, null, null
+        )
+        
+        cursor?.use {
+            while (it.moveToNext()) {
+                val fileName = it.getString(0)
+                val fileId = it.getString(1)
+                
+                if (!fileName.endsWith(".zip", ignoreCase = true)) continue
+                
+                try {
+                    val fileUri = DocumentsContract.buildDocumentUriUsingTree(folderUri, fileId)
+                    contentResolver.openInputStream(fileUri)?.use { inputStream ->
+                        val metadata = getMetadata(inputStream)
+                        if (metadata?.config == null) {
+                            failCount++
+                            return@use
+                        }
+                        contentResolver.openInputStream(fileUri)?.use { importStream ->
+                            importTheme(context, importStream, metadata)
+                            successCount++
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    failCount++
+                }
+            }
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+    
+    return Pair(successCount, failCount)
+}
+
+fun getRandomTheme(context: Context): ThemeFileName? {
+    val custom = listCustom(context)
+    val assets = listAssets(context)
+    val all = custom + assets
+    if (all.isEmpty()) return null
+    return all[Random.nextInt(all.size)]
+}
 
     private fun invalidateCache(name: ThemeFileName) {
         themeCache.remove(name)

@@ -107,6 +107,54 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Casino
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.rememberDismissState
+import androidx.compose.material3.Divider
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.RadioButton
+import android.content.Intent
+import androidx.core.content.FileProvider
+import java.io.File
+import java.io.FileOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Slider
+import androidx.compose.material3.OutlinedButton
+import java.util.Calendar
+import androidx.compose.material3.Switch
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import org.futo.inputmethod.latin.uix.SettingsKey
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.isCtrlPressed
 
 @Composable
 fun ThemePreview(theme: ThemeOption, isSelected: Boolean = false, overrideName: String? = null, modifier: Modifier = Modifier, onClick: () -> Unit = { }) {
@@ -518,6 +566,722 @@ fun SearchDialog(
     )
 }
 
+// ─────── MoreMenuButton ───────
+@Composable
+fun MoreMenuButton(
+    context: Context,
+    onImportFolder: () -> Unit,
+    onExportThemes: () -> Unit,
+    onFilterByColor: () -> Unit,
+    onSort: () -> Unit,
+    onFavorites: () -> Unit,
+    onStats: () -> Unit,
+    onSettings: () -> Unit,
+    onAutoMode: () -> Unit,
+    onCustomBackground: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    
+    Box {
+        FloatingActionButton(
+            onClick = { expanded = true },
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+        ) {
+            Icon(Icons.Default.MoreVert, "More options")
+        }
+        
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("📁 استيراد مجلد كامل") },
+                onClick = { expanded = false; onImportFolder() },
+                leadingIcon = { Icon(Icons.Default.FolderOpen, null) }
+            )
+            DropdownMenuItem(
+                text = { Text("📤 تصدير الثيمات") },
+                onClick = { expanded = false; onExportThemes() },
+                leadingIcon = { Icon(Icons.Default.Download, null) }
+            )
+            Divider()
+            DropdownMenuItem(
+                text = { Text("🎨 تصنيف بالألوان") },
+                onClick = { expanded = false; onFilterByColor() }
+            )
+            DropdownMenuItem(
+                text = { Text("🔀 ترتيب") },
+                onClick = { expanded = false; onSort() }
+            )
+            DropdownMenuItem(
+                text = { Text("⭐ المفضلة") },
+                onClick = { expanded = false; onFavorites() }
+            )
+            Divider()
+            DropdownMenuItem(
+                text = { Text("📊 إحصائيات") },
+                onClick = { expanded = false; onStats() }
+            )
+            DropdownMenuItem(
+                text = { Text("💾 حفظ/استيراد إعدادات") },
+                onClick = { expanded = false; onSettings() }
+            )
+            Divider()
+            DropdownMenuItem(
+                text = { Text("🌙 الوضع التلقائي") },
+                onClick = { expanded = false; onAutoMode() }
+            )
+            DropdownMenuItem(
+                text = { Text("🖼️ خلفية مخصصة") },
+                onClick = { expanded = false; onCustomBackground() }
+            )
+        }
+    }
+}
+
+// ─────── RandomThemeButton ───────
+@Composable
+fun RandomThemeButton(
+    onClick: () -> Unit
+) {
+    FloatingActionButton(
+        onClick = onClick,
+        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+    ) {
+        Icon(Icons.Default.Casino, "Random theme")
+    }
+}
+
+// ─────── FavoriteButton ───────
+@Composable
+fun FavoriteIconButton(
+    isFavorite: Boolean,
+    onClick: () -> Unit
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(32.dp)
+    ) {
+        Icon(
+            imageVector = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+            tint = if (isFavorite) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+// ─────── Color Filter Row ───────
+val ThemeColors = listOf(
+    "الكل" to null,
+    "أحمر" to "red",
+    "أزرق" to "blue",
+    "أخضر" to "green",
+    "بنفسجي" to "purple",
+    "وردي" to "pink",
+    "برتقالي" to "orange",
+    "أصفر" to "yellow",
+    "سماوي" to "cyan",
+    "رمادي" to "gray",
+)
+
+fun themeMatchesColor(themeName: String, colorKey: String?): Boolean {
+    if (colorKey == null) return true
+    val lower = themeName.lowercase()
+    return when (colorKey) {
+        "red" -> lower.contains("red") || lower.contains("crimson") || lower.contains("ruby") || lower.contains("rose")
+        "blue" -> lower.contains("blue") || lower.contains("azure") || lower.contains("cobalt") || lower.contains("sapphire")
+        "green" -> lower.contains("green") || lower.contains("lime") || lower.contains("emerald") || lower.contains("mint") || lower.contains("jade")
+        "purple" -> lower.contains("purple") || lower.contains("violet") || lower.contains("magenta") || lower.contains("amethyst") || lower.contains("lavender")
+        "pink" -> lower.contains("pink") || lower.contains("rose") || lower.contains("plasma")
+        "orange" -> lower.contains("orange") || lower.contains("amber") || lower.contains("peach") || lower.contains("copper")
+        "yellow" -> lower.contains("yellow") || lower.contains("gold") || lower.contains("citrine")
+        "cyan" -> lower.contains("cyan") || lower.contains("teal") || lower.contains("turquoise")
+        "gray" -> lower.contains("gray") || lower.contains("grey") || lower.contains("silver") || lower.contains("graphite") || lower.contains("titanium")
+        else -> true
+    }
+}
+
+@Composable
+fun ColorFilterRow(
+    selectedColor: String?,
+    onSelect: (String?) -> Unit
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(ThemeColors.size) { idx ->
+            val (name, key) = ThemeColors[idx]
+            FilterChip(
+                selected = selectedColor == key,
+                onClick = { onSelect(key) },
+                label = { Text(name, style = MaterialTheme.typography.bodySmall) }
+            )
+        }
+    }
+}
+
+// ─────── Large Preview Dialog ───────
+@Composable
+fun LargePreviewDialog(
+    theme: ZipThemes.ThemeFileName,
+    onDismiss: () -> Unit,
+    onApply: () -> Unit
+) {
+    val context = LocalContext.current
+    val scheme = remember { mutableStateOf<KeyboardColorScheme?>(null) }
+    val loading = remember { mutableStateOf(true) }
+    
+    LaunchedEffect(theme) {
+        withContext(Dispatchers.Default) {
+            try {
+                scheme.value = ZipThemes.loadSchemeThumb(context, theme)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            loading.value = false
+        }
+    }
+    
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        androidx.compose.material3.Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .fillMaxHeight(0.7f),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = theme.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                if (loading.value) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator()
+                    }
+                } else if (scheme.value != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                    ) {
+                        ZipThemePreview(
+                            name = theme,
+                            isSelected = false,
+                            modifier = Modifier.fillMaxSize(),
+                            onLongClick = null
+                        ) { }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    androidx.compose.material3.TextButton(
+                        onClick = onDismiss
+                    ) {
+                        Text("إلغاء")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    androidx.compose.material3.Button(
+                        onClick = onApply
+                    ) {
+                        Text("تطبيق")
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ─────── Sort Options ───────
+enum class SortOption(val label: String) {
+    ALPHABETICAL("أبجدي"),
+    NEWEST("الأحدث"),
+    MOST_USED("الأكثر استخداماً"),
+    COLOR("حسب اللون"),
+}
+
+fun sortThemes(
+    themes: List<ZipThemes.ThemeFileName>,
+    sortBy: SortOption,
+    context: Context
+): List<ZipThemes.ThemeFileName> {
+    return when (sortBy) {
+        SortOption.ALPHABETICAL -> themes.sortedBy { it.name.lowercase() }
+        SortOption.NEWEST -> themes.sortedByDescending { it.name }
+        SortOption.MOST_USED -> themes // TODO: Track usage
+        SortOption.COLOR -> themes.sortedBy { it.name.lowercase() }
+    }
+}
+
+// ─────── Sort Dialog ───────
+@Composable
+fun SortDialog(
+    currentSort: SortOption,
+    onSelect: (SortOption) -> Unit,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("🔀 ترتيب الثيمات") },
+        text = {
+            Column {
+                SortOption.values().forEach { option ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(option); onDismiss() }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = currentSort == option,
+                            onClick = { onSelect(option); onDismiss() }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(option.label)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("إغلاق")
+            }
+        }
+    )
+}
+
+// ─────── Export Themes ───────
+fun exportCustomThemes(context: Context): File? {
+    try {
+        val themesDir = ZipThemes.customThemesDir(context)
+        val files = themesDir.listFiles()?.filter { it.extension == "zip" } ?: return null
+        if (files.isEmpty()) return null
+        
+        val exportFile = File(context.cacheDir, "futo_themes_backup_${System.currentTimeMillis()}.zip")
+        ZipOutputStream(FileOutputStream(exportFile)).use { zos ->
+            files.forEach { file ->
+                zos.putNextEntry(ZipEntry(file.name))
+                file.inputStream().use { it.copyTo(zos) }
+                zos.closeEntry()
+            }
+        }
+        return exportFile
+    } catch (e: Exception) {
+        e.printStackTrace()
+        return null
+    }
+}
+
+fun shareThemeExport(context: Context, file: File) {
+    try {
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/zip"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, "تصدير الثيمات"))
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
+// ─────── Delete Multiple Dialog ───────
+@Composable
+fun DeleteMultipleDialog(
+    themes: List<ZipThemes.ThemeFileName>,
+    onConfirm: (Set<String>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
+    
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("🗑️ حذف متعدد") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp)
+            ) {
+                Text(
+                    "المحدد: ${selected.size}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                if (themes.isEmpty()) {
+                    Text("لا توجد ثيمات مخصصة للحذف")
+                } else {
+                    androidx.compose.foundation.lazy.LazyColumn {
+                        items(themes.size) { idx ->
+                            val theme = themes[idx]
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selected = if (theme.name in selected) {
+                                            selected - theme.name
+                                        } else {
+                                            selected + theme.name
+                                        }
+                                    }
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = theme.name in selected,
+                                    onCheckedChange = {
+                                        selected = if (it) {
+                                            selected + theme.name
+                                        } else {
+                                            selected - theme.name
+                                        }
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(theme.name, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                onClick = {
+                    if (selected.isNotEmpty()) {
+                        onConfirm(selected)
+                    }
+                    onDismiss()
+                },
+                enabled = selected.isNotEmpty()
+            ) {
+                Text("حذف (${selected.size})", color = Color.Red)
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("إلغاء")
+            }
+        }
+    )
+}
+
+// ─────── Color Editor Dialog ───────
+@Composable
+fun ColorEditorDialog(
+    theme: ZipThemes.ThemeFileName,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    var hue by remember { mutableStateOf(0.5f) }
+    var saturation by remember { mutableStateOf(0.7f) }
+    var lightness by remember { mutableStateOf(0.5f) }
+    
+    // معاينة اللون
+    val previewColor = remember(hue, saturation, lightness) {
+        Color.hsl(hue * 360f, saturation, lightness)
+    }
+    
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("🎨 تعديل الألوان: ${theme.name}") },
+        text = {
+            Column {
+                Text("Hue (درجة اللون)")
+                Slider(
+                    value = hue,
+                    onValueChange = { hue = it },
+                    valueRange = 0f..1f
+                )
+                
+                Text("Saturation (التشبع)")
+                Slider(
+                    value = saturation,
+                    onValueChange = { saturation = it },
+                    valueRange = 0f..1f
+                )
+                
+                Text("Lightness (الإضاءة)")
+                Slider(
+                    value = lightness,
+                    onValueChange = { lightness = it },
+                    valueRange = 0f..1f
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // معاينة اللون
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("المعاينة: ")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .background(previewColor, RoundedCornerShape(8.dp))
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.Button(
+                onClick = {
+                    Toast.makeText(context, "تطبيق الألوان - قريباً", Toast.LENGTH_SHORT).show()
+                    onDismiss()
+                }
+            ) {
+                Text("حفظ")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("إلغاء")
+            }
+        }
+    )
+}
+
+// ─────── Auto Mode Config ───────
+val AutoModeEnabledKey = SettingsKey(booleanPreferencesKey("auto_mode_enabled"), false)
+val AutoModeDayThemeKey = SettingsKey(stringPreferencesKey("auto_mode_day_theme"), "")
+val AutoModeNightThemeKey = SettingsKey(stringPreferencesKey("auto_mode_night_theme"), "")
+val AutoModeDayStartKey = SettingsKey(androidx.datastore.preferences.core.intPreferencesKey("auto_mode_day_start"), 7) // 7 صباحاً
+val AutoModeNightStartKey = SettingsKey(androidx.datastore.preferences.core.intPreferencesKey("auto_mode_night_start"), 19) // 7 مساءً
+
+fun isDayTime(context: Context): Boolean {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    val dayStart = runBlocking { context.getSetting(AutoModeDayStartKey) }
+    val nightStart = runBlocking { context.getSetting(AutoModeNightStartKey) }
+    return hour >= dayStart && hour < nightStart
+}
+
+// ─────── Auto Mode Dialog ───────
+@Composable
+fun AutoModeDialog(
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    var enabled by remember { mutableStateOf(false) }
+    
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("🌙 الوضع التلقائي") },
+        text = {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("تفعيل التبديل التلقائي")
+                    Switch(
+                        checked = enabled,
+                        onCheckedChange = { enabled = it }
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Text(
+                    "عند التفعيل، يتم تبديل الثيم تلقائياً بين النهار والليل.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    "النهار: 7:00 صباحاً",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    "الليل: 7:00 مساءً",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                if (enabled) {
+                    androidx.compose.material3.Button(
+                        onClick = {
+                            Toast.makeText(
+                                context,
+                                "تم تفعيل الوضع التلقائي",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            onDismiss()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("حفظ")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("إغلاق")
+            }
+        }
+    )
+}
+
+// ─────── Share Theme ───────
+fun shareTheme(context: Context, theme: ZipThemes.ThemeFileName) {
+    try {
+        val themeFile = if (theme.location == ZipThemes.ThemeLocation.Custom) {
+            java.io.File(ZipThemes.customThemesDir(context), "${theme.name}.zip")
+        } else {
+            null
+        }
+        
+        if (themeFile != null && themeFile.exists()) {
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                themeFile
+            )
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/zip"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "ثيم FUTO: ${theme.name}")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(intent, "مشاركة الثيم"))
+        } else {
+            Toast.makeText(context, "لا يمكن مشاركة هذا الثيم", Toast.LENGTH_SHORT).show()
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(context, "خطأ في المشاركة", Toast.LENGTH_SHORT).show()
+    }
+}
+
+// ─────── Stats ───────
+val ThemeUsageCountKey = SettingsKey(intPreferencesKey("theme_usage_count"), 0)
+val TotalThemesAppliedKey = SettingsKey(intPreferencesKey("total_themes_applied"), 0)
+
+fun getStats(context: Context): Map<String, Int> {
+    return mapOf(
+        "custom" to ZipThemes.listCustom(context).size,
+        "assets" to ZipThemes.listAssets(context).size,
+        "favorites" to ZipThemes.getFavorites(context).size,
+        "total_applied" to runBlocking { context.getSetting(TotalThemesAppliedKey) }
+    )
+}
+
+@Composable
+fun StatsDialog(
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val stats = remember { getStats(context) }
+    
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("📊 إحصائيات") },
+        text = {
+            Column {
+                StatRow("📦 ثيمات مخصصة", stats["custom"] ?: 0)
+                StatRow("🎨 ثيمات assets", stats["assets"] ?: 0)
+                StatRow("⭐ المفضلة", stats["favorites"] ?: 0)
+                StatRow("🖱️ تم تطبيقها", stats["total_applied"] ?: 0)
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("إغلاق")
+            }
+        }
+    )
+}
+
+@Composable
+fun StatRow(label: String, value: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Text(
+            value.toString(),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+        )
+    }
+}
+
+// ─────── Settings Export/Import ───────
+fun exportSettings(context: Context) {
+    try {
+        val settingsFile = java.io.File(
+            context.cacheDir,
+            "futo_settings_${System.currentTimeMillis()}.zip"
+        )
+        java.util.zip.ZipOutputStream(java.io.FileOutputStream(settingsFile)).use { zos ->
+            // حفظ نسخة من themes dir
+            val themesDir = ZipThemes.customThemesDir(context)
+            themesDir.listFiles()?.forEach { file ->
+                zos.putNextEntry(java.util.zip.ZipEntry("themes/${file.name}"))
+                file.inputStream().use { it.copyTo(zos) }
+                zos.closeEntry()
+            }
+        }
+        
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            settingsFile
+        )
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/zip"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, "حفظ الإعدادات"))
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(context, "خطأ في حفظ الإعدادات", Toast.LENGTH_SHORT).show()
+    }
+}
+
 @Composable
 fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit) {
     val context = LocalContext.current
@@ -541,11 +1305,40 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
     val customThemes = remember(ZipThemes.updateCount.intValue) {
         ZipThemes.listCustom(context)
     }
-    val assetThemes = remember { ZipThemes.listAssets(context) }
+    val allAssetThemes = remember { ZipThemes.listAssets(context) }
+    val assetThemes = remember(selectedColor, sortBy) {
+        val filtered = if (selectedColor == null) allAssetThemes
+        else allAssetThemes.filter { themeMatchesColor(it.name, selectedColor) }
+        sortThemes(filtered, sortBy, context)
+    }
 
     val lifecycle = LocalLifecycleOwner.current
     val gridState = rememberLazyGridState()
     var showSearchDialog by remember { mutableStateOf(false) }
+    var showMoreMenu by remember { mutableStateOf(false) }
+    var contextMenuTheme by remember { mutableStateOf<ZipThemes.ThemeFileName?>(null) }
+    var favoritesVersion by remember { mutableStateOf(0) }
+    var showDeleteMultiple by remember { mutableStateOf(false) }
+    var colorEditTheme by remember { mutableStateOf<ZipThemes.ThemeFileName?>(null) }
+    
+    // Import folder launcher
+    val folderPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri: Uri? ->
+        uri ?: return@rememberLauncherForActivityResult
+        scope.launch {
+            val (success, fail) = withContext(Dispatchers.IO) {
+                ZipThemes.importThemeFolder(context, uri)
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    context,
+                    "تم استيراد: $success\nفشل: $fail",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
     val totalItems = 2 + customThemes.size + 2 + assetThemes.size + availableThemeOptions.size
     val scope = rememberCoroutineScope()
 
@@ -575,7 +1368,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                     items(customThemes.size) {
                         val name = customThemes[it]
                         ZipThemePreview(name, isSelected = currentTheme == name.toSetting(), modifier = Modifier, onLongClick = {
-                            onDeleteCustomTheme(name.name)
+                            contextMenuTheme = name
                         }) {
                             lifecycle.lifecycleScope.launch {
                                 context.setSetting(THEME_KEY, name.toSetting())
@@ -590,7 +1383,9 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                         ScreenTitle(stringResource(R.string.theme_settings_default_themes))
                     }
                     items(assetThemes) { name ->
-                        ZipThemePreview(name, isSelected = currentTheme == name.toSetting(), modifier = Modifier, onLongClick = {}) {
+                        ZipThemePreview(name, isSelected = currentTheme == name.toSetting(), modifier = Modifier, onLongClick = {
+                            previewTheme = name
+                        }) {
                             lifecycle.lifecycleScope.launch {
                                 context.setSetting(THEME_KEY, name.toSetting())
                             }
@@ -630,6 +1425,63 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                 .padding(end = 4.dp, top = 100.dp, bottom = 220.dp)
         )
 
+        // ────── أزرار متقدمة (أعلى اليمين) ──────
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = 16.dp, top = 80.dp),
+            horizontalAlignment = Alignment.End
+        ) {
+            RandomThemeButton(
+                onClick = {
+                    val random = ZipThemes.getRandomTheme(context)
+                    if (random != null) {
+                        lifecycle.lifecycleScope.launch {
+                            context.setSetting(THEME_KEY, random.toSetting())
+                        }
+                    }
+                }
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            MoreMenuButton(
+                context = context,
+                onImportFolder = { folderPicker.launch(null) },
+                onExportThemes = {
+                    val file = exportCustomThemes(context)
+                    if (file != null) {
+                        shareThemeExport(context, file)
+                    } else {
+                        Toast.makeText(context, "لا توجد ثيمات مخصصة للتصدير", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onFilterByColor = {
+                    Toast.makeText(context, "تصنيف بالألوان - قريباً", Toast.LENGTH_SHORT).show()
+                },
+                onSort = {
+                    showSortDialog = true
+                },
+                onFavorites = {
+                    Toast.makeText(context, "المفضلة - قريباً", Toast.LENGTH_SHORT).show()
+                },
+                onStats = {
+                    showStats = true
+                },
+                onSettings = {
+                    exportSettings(context)
+                },
+                onAutoMode = {
+                    showAutoMode = true
+                },
+                onCustomBackground = {
+                    backgroundPicker.launch(
+                        PickVisualMediaRequest(PickVisualMedia.ImageOnly)
+                    )
+                }
+            )
+        }
+        
         // ────── الأزرار الرئيسية (أسفل اليمين) ──────
         Column(
             modifier = Modifier
@@ -735,6 +1587,115 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
             }
         )
     }
+
+    // ────── القائمة السياقية ──────
+    if (contextMenuTheme != null) {
+        val theme = contextMenuTheme!!
+        val isFav = ZipThemes.isFavorite(context, theme.name)
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { contextMenuTheme = null },
+            title = { Text(theme.name) },
+            text = {
+                Column {
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            ZipThemes.toggleFavorite(context, theme.name)
+                            favoritesVersion++
+                            contextMenuTheme = null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            if (isFav) Icons.Default.Star else Icons.Default.StarBorder,
+                            null,
+                            tint = if (isFav) Color(0xFFFFD700) else Color.Unspecified
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (isFav) "إزالة من المفضلة" else "إضافة للمفضلة")
+                    }
+                    
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            shareTheme(context, theme)
+                            contextMenuTheme = null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Share, null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("مشاركة")
+                    }
+                    
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            val fileName = theme.name
+                            ZipThemes.delete(context, theme)
+                            favoritesVersion++
+                            contextMenuTheme = null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Delete, null, tint = Color.Red)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("حذف", color = Color.Red)
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { contextMenuTheme = null }
+                ) {
+                    Text("إغلاق")
+                }
+            }
+        )
+    }
+
+
+    // ────── Large Preview Dialog ──────
+    previewTheme?.let { theme ->
+        LargePreviewDialog(
+            theme = theme,
+            onDismiss = { previewTheme = null },
+            onApply = {
+                lifecycle.lifecycleScope.launch {
+                    context.setSetting(THEME_KEY, theme.toSetting())
+                }
+                previewTheme = null
+            }
+        )
+    }
+
+
+    // ────── Delete Multiple Dialog ──────
+    if (showDeleteMultiple) {
+        DeleteMultipleDialog(
+            themes = customThemes,
+            onConfirm = { selectedNames ->
+                selectedNames.forEach { name ->
+                    ZipThemes.delete(context, ZipThemes.custom(name))
+                }
+                ZipThemes.updateCount.intValue += 1
+                Toast.makeText(context, "تم حذف ${selectedNames.size} ثيم", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = { showDeleteMultiple = false }
+        )
+    }
+
+
+    // ────── Auto Mode Dialog ──────
+    if (showAutoMode) {
+        AutoModeDialog(
+            onDismiss = { showAutoMode = false }
+        )
+    }
+
+
+    // ────── Stats Dialog ──────
+    if (showStats) {
+        StatsDialog(onDismiss = { showStats = false })
+    }
+
 }
 
 
