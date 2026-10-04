@@ -86,8 +86,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.imePadding
-import com.mohamedrejeb.calf.ui.scrollbar.VerticalScrollbar
-import com.mohamedrejeb.calf.ui.scrollbar.rememberScrollbarAdapter
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.roundToInt
 
 @Composable
 fun ThemePreview(theme: ThemeOption, isSelected: Boolean = false, overrideName: String? = null, modifier: Modifier = Modifier, onClick: () -> Unit = { }) {
@@ -332,6 +338,55 @@ fun VisitThemeStoreButton(short: Boolean = false) {
 }
 
 @Composable
+fun CustomScrollbar(
+    state: LazyGridState,
+    modifier: Modifier = Modifier,
+    totalItems: Int
+) {
+    if (totalItems <= 0) return
+
+    val firstVisible = state.firstVisibleItemIndex
+    val visibleCount = state.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
+    val scrollFraction = firstVisible.toFloat() / totalItems.toFloat()
+    val visibleFraction = (visibleCount.toFloat() / totalItems.toFloat()).coerceIn(0.05f, 1f)
+
+    Box(
+        modifier = modifier
+            .width(12.dp)
+            .pointerInput(totalItems) {
+                detectDragGestures { change, dragAmount ->
+                    change.consume()
+                    val trackHeight = size.height.toFloat()
+                    val dragFraction = dragAmount.y / trackHeight
+                    val newFraction = (scrollFraction + dragFraction).coerceIn(0f, 1f)
+                    val targetItem = (newFraction * totalItems).roundToInt().coerceIn(0, totalItems - 1)
+                    state.scrollToItem(targetItem)
+                }
+            }
+    ) {
+        Canvas(modifier = Modifier.fillMaxHeight()) {
+            val trackHeight = size.height
+            val trackWidth = size.width
+            val thumbHeight = (trackHeight * visibleFraction).coerceAtLeast(60f)
+            val thumbOffset = (trackHeight - thumbHeight) * scrollFraction
+
+            drawRoundRect(
+                color = Color.Gray.copy(alpha = 0.25f),
+                topLeft = Offset(trackWidth * 0.25f, 0f),
+                size = Size(trackWidth * 0.5f, trackHeight),
+                cornerRadius = CornerRadius(trackWidth * 0.25f)
+            )
+            drawRoundRect(
+                color = Color.White.copy(alpha = 0.6f),
+                topLeft = Offset(trackWidth * 0.15f, thumbOffset),
+                size = Size(trackWidth * 0.7f, thumbHeight),
+                cornerRadius = CornerRadius(trackWidth * 0.35f)
+            )
+        }
+    }
+}
+
+@Composable
 fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit) {
     val context = LocalContext.current
     val currentTheme = useDataStore(THEME_KEY.key, "").value.trimEnd('_')
@@ -432,13 +487,14 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
             }
         }
 
-        // ────── Scrollbar (calf-ui) ──────
-        VerticalScrollbar(
+        // ────── Custom Scrollbar (Canvas-based) ──────
+        CustomScrollbar(
+            state = gridState,
+            totalItems = totalItems,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .fillMaxHeight()
-                .padding(end = 2.dp, top = 80.dp, bottom = 200.dp),
-            adapter = rememberScrollbarAdapter(gridState)
+                .padding(end = 2.dp, top = 80.dp, bottom = 200.dp)
         )
 
         // ────── الأزرار الرئيسية (أسفل اليمين) ──────
