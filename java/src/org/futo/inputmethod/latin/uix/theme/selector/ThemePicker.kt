@@ -76,6 +76,7 @@ import org.futo.inputmethod.latin.uix.theme.presets.DynamicLightTheme
 import org.futo.inputmethod.latin.uix.theme.presets.DynamicSystemTheme
 import org.futo.inputmethod.latin.uix.theme.presets.VoiceInputTheme
 import org.futo.inputmethod.updates.openURI
+import androidx.compose.material3.FloatingActionButton
 
 @Composable
 fun ThemePreview(theme: ThemeOption, isSelected: Boolean = false, overrideName: String? = null, modifier: Modifier = Modifier, onClick: () -> Unit = { }) {
@@ -322,7 +323,6 @@ fun VisitThemeStoreButton(short: Boolean = false) {
 @Composable
 fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit) {
     val context = LocalContext.current
-
     val currentTheme = useDataStore(THEME_KEY.key, "").value.trimEnd('_')
 
     val isInspecting = LocalInspectionMode.current
@@ -340,90 +340,111 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
     }
 
     val originalDirection = LocalLayoutDirection.current
-
     val customThemes = remember(ZipThemes.updateCount.intValue) {
         ZipThemes.listCustom(context)
     }
-
     val assetThemes = remember { ZipThemes.listAssets(context) }
 
     val lifecycle = LocalLifecycleOwner.current
-    Column {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            LazyVerticalGrid(
-                modifier = Modifier.fillMaxWidth(),
-                columns = GridCells.Adaptive(minSize = 172.dp),
-                horizontalArrangement = if (LocalLayoutDirection.current == LayoutDirection.Rtl) {
-                    Arrangement.End
-                } else {
-                    Arrangement.Start
-                }
-            ) {
-                item(span = { GridItemSpan(maxCurrentLineSpan) }) {
-                    ScreenTitle(stringResource(R.string.theme_settings_custom_themes))
-                }
 
-                items(customThemes.size) {
-                    val name = customThemes[it]
-                    ZipThemePreview(name, isSelected = currentTheme == name.toSetting(), modifier = Modifier, onLongClick = {
-                        onDeleteCustomTheme(name.name)
-                    }) {
-                        lifecycle.lifecycleScope.launch {
-                            context.setSetting(THEME_KEY, name.toSetting())
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                LazyVerticalGrid(
+                    modifier = Modifier.fillMaxWidth(),
+                    columns = GridCells.Adaptive(minSize = 172.dp),
+                    horizontalArrangement = if (LocalLayoutDirection.current == LayoutDirection.Rtl) {
+                        Arrangement.End
+                    } else {
+                        Arrangement.Start
+                    }
+                ) {
+                    item(span = { GridItemSpan(maxCurrentLineSpan) }) {
+                        ScreenTitle(stringResource(R.string.theme_settings_custom_themes))
+                    }
+
+                    items(customThemes.size) {
+                        val name = customThemes[it]
+                        ZipThemePreview(name, isSelected = currentTheme == name.toSetting(), modifier = Modifier, onLongClick = {
+                            onDeleteCustomTheme(name.name)
+                        }) {
+                            lifecycle.lifecycleScope.launch {
+                                context.setSetting(THEME_KEY, name.toSetting())
+                            }
                         }
                     }
-                }
 
-                item {
-                    AddCustomThemeButton(customThemes.isEmpty()) {
-                        onCustomTheme()
+                    item(span = { GridItemSpan(maxCurrentLineSpan) }) { }
+                    item(span = { GridItemSpan(maxCurrentLineSpan) }) {
+                        ScreenTitle(stringResource(R.string.theme_settings_default_themes))
                     }
-                }
-
-                item {
-                    VisitThemeStoreButton(customThemes.isEmpty())
-                }
-
-                item(span = { GridItemSpan(maxCurrentLineSpan) }) { }
-                item(span = { GridItemSpan(maxCurrentLineSpan) }) {
-                    ScreenTitle(stringResource(R.string.theme_settings_default_themes))
-                }
-                items(assetThemes) { name ->
-                    ZipThemePreview(name, isSelected = currentTheme == name.toSetting(), modifier = Modifier, onLongClick = {}) {
-                        lifecycle.lifecycleScope.launch {
-                            context.setSetting(THEME_KEY, name.toSetting())
+                    items(assetThemes) { name ->
+                        ZipThemePreview(name, isSelected = currentTheme == name.toSetting(), modifier = Modifier, onLongClick = {}) {
+                            lifecycle.lifecycleScope.launch {
+                                context.setSetting(THEME_KEY, name.toSetting())
+                            }
                         }
                     }
-                }
 
-                items(availableThemeOptions.size) {
-                    val themeOption = availableThemeOptions[it].second
-
-                    ThemePreview(themeOption, isSelected = themeOption.key == currentTheme) {
-                        lifecycle.lifecycleScope.launch {
-                            context.setSetting(THEME_KEY, themeOption.key)
+                    items(availableThemeOptions.size) {
+                        val themeOption = availableThemeOptions[it].second
+                        ThemePreview(themeOption, isSelected = themeOption.key == currentTheme) {
+                            lifecycle.lifecycleScope.launch {
+                                context.setSetting(THEME_KEY, themeOption.key)
+                            }
                         }
                     }
-                }
 
-
-                item(span = { GridItemSpan(maxCurrentLineSpan) }) { }
-
-                item(span = { GridItemSpan(maxCurrentLineSpan) }) {
-                    if(ZipThemes.ThemeFileName.fromSetting(currentTheme) == null) {
-                        CompositionLocalProvider(LocalLayoutDirection provides originalDirection) {
-                            SettingToggleDataStore(
-                                title = stringResource(R.string.theme_settings_key_borders),
-                                setting = KeyBordersSetting
-                            )
+                    item(span = { GridItemSpan(maxCurrentLineSpan) }) { }
+                    item(span = { GridItemSpan(maxCurrentLineSpan) }) {
+                        if(ZipThemes.ThemeFileName.fromSetting(currentTheme) == null) {
+                            CompositionLocalProvider(LocalLayoutDirection provides originalDirection) {
+                                SettingToggleDataStore(
+                                    title = stringResource(R.string.theme_settings_key_borders),
+                                    setting = KeyBordersSetting
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+
+        // FloatingActionButtons
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.End
+        ) {
+            FloatingActionButton(
+                onClick = { onCustomTheme() },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(R.string.theme_settings_add_new_theme)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            FloatingActionButton(
+                onClick = {
+                    context.openURI("https://keyboard.futo.tech/themes", true)
+                },
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.compass),
+                    contentDescription = stringResource(R.string.theme_settings_visit_theme_store)
+                )
+            }
+        }
     }
 }
-
 
 @Preview
 @Composable
