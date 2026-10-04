@@ -120,7 +120,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.rememberDismissState
 import androidx.compose.material3.Divider
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -551,12 +550,12 @@ fun MoreMenuButton(
             DropdownMenuItem(
                 text = { Text("📁 استيراد مجلد كامل") },
                 onClick = { expanded = false; onImportFolder() },
-                leadingIcon = { Icon(Icons.Default.FolderOpen, null) }
+                leadingIcon = { Icon(Icons.Default.Add, null) }
             )
             DropdownMenuItem(
                 text = { Text("📤 تصدير الثيمات") },
                 onClick = { expanded = false; onExportThemes() },
-                leadingIcon = { Icon(Icons.Default.Download, null) }
+                leadingIcon = { Icon(Icons.Default.Share, null) }
             )
             Divider()
             DropdownMenuItem(
@@ -603,7 +602,7 @@ fun RandomThemeButton(
         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
         contentColor = MaterialTheme.colorScheme.onTertiaryContainer
     ) {
-        Icon(Icons.Default.Casino, "Random theme")
+        Icon(Icons.Default.Refresh, "Random theme")
     }
 }
 
@@ -618,7 +617,7 @@ fun FavoriteIconButton(
         modifier = Modifier.size(32.dp)
     ) {
         Icon(
-            imageVector = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+            imageVector = if (isFavorite) Icons.Default.Star else Icons.Default.Star,
             contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
             tint = if (isFavorite) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -1259,11 +1258,6 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
         ZipThemes.listCustom(context)
     }
     val allAssetThemes = remember { ZipThemes.listAssets(context) }
-    val assetThemes = remember(selectedColor, sortBy) {
-        val filtered = if (selectedColor == null) allAssetThemes
-        else allAssetThemes.filter { themeMatchesColor(it.name, selectedColor) }
-        sortThemes(filtered, sortBy, context)
-    }
 
     val lifecycle = LocalLifecycleOwner.current
     val gridState = rememberLazyGridState()
@@ -1275,6 +1269,11 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
     var colorEditTheme by remember { mutableStateOf<ZipThemes.ThemeFileName?>(null) }
     var selectedColor by remember { mutableStateOf<String?>(null) }
     var sortBy by remember { mutableStateOf(SortOption.ALPHABETICAL) }
+    val assetThemes = remember(selectedColor, sortBy) {
+        val filtered = if (selectedColor == null) allAssetThemes
+        else allAssetThemes.filter { themeMatchesColor(it.name, selectedColor) }
+        sortThemes(filtered, sortBy, context)
+    }
     var showSortDialog by remember { mutableStateOf(false) }
     var previewTheme by remember { mutableStateOf<ZipThemes.ThemeFileName?>(null) }
     var showStats by remember { mutableStateOf(false) }
@@ -1595,7 +1594,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(
-                            if (isFav) Icons.Default.Star else Icons.Default.StarBorder,
+                            if (isFav) Icons.Default.Star else Icons.Default.Star,
                             null,
                             tint = if (isFav) Color(0xFFFFD700) else Color.Unspecified
                         )
