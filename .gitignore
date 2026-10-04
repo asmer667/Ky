@@ -17,3 +17,9 @@ futo_themes/
 generate_themes.py
 make_theme.py
 build.log
+
+# Backup files
+*.bak
+*.bak2
+*.bak3
+*.bak4
