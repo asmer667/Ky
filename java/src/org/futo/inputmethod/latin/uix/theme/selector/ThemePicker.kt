@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -112,10 +113,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Casino
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
@@ -1320,6 +1317,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                         Arrangement.Start
                     }
                     // 🎚️ Slider للتنقل السريع
+                ) {
                     item(span = { GridItemSpan(maxCurrentLineSpan) }) {
                         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                             Text(
