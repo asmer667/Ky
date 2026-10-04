@@ -1284,6 +1284,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
     var scrollJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     
     // Import folder launcher
+    val scope = rememberCoroutineScope()
     val folderPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
@@ -1302,7 +1303,6 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
         }
     }
     val totalItems = 2 + customThemes.size + 2 + assetThemes.size + availableThemeOptions.size
-    val scope = rememberCoroutineScope()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
