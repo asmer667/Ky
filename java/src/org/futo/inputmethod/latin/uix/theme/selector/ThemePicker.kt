@@ -95,6 +95,16 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlin.math.roundToInt
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.CircularProgressIndicator
 
 @Composable
 fun ThemePreview(theme: ThemeOption, isSelected: Boolean = false, overrideName: String? = null, modifier: Modifier = Modifier, onClick: () -> Unit = { }) {
@@ -354,7 +364,7 @@ fun CustomScrollbar(
 
     Box(
         modifier = modifier
-            .width(12.dp)
+            .width(20.dp)
             .pointerInput(totalItems) {
                 detectDragGestures { change, dragAmount ->
                     change.consume()
@@ -371,23 +381,138 @@ fun CustomScrollbar(
         Canvas(modifier = Modifier.fillMaxHeight()) {
             val trackHeight = size.height
             val trackWidth = size.width
-            val thumbHeight = (trackHeight * visibleFraction).coerceAtLeast(60f)
+            val thumbHeight = (trackHeight * visibleFraction).coerceAtLeast(100f)
             val thumbOffset = (trackHeight - thumbHeight) * scrollFraction
 
             drawRoundRect(
-                color = Color.Gray.copy(alpha = 0.25f),
+                color = Color(0xFF4FC3F7).copy(alpha = 0.35f),
                 topLeft = Offset(trackWidth * 0.25f, 0f),
                 size = Size(trackWidth * 0.5f, trackHeight),
                 cornerRadius = CornerRadius(trackWidth * 0.25f)
             )
             drawRoundRect(
-                color = Color.White.copy(alpha = 0.6f),
+                color = Color(0xFF4FC3F7),
                 topLeft = Offset(trackWidth * 0.15f, thumbOffset),
                 size = Size(trackWidth * 0.7f, thumbHeight),
                 cornerRadius = CornerRadius(trackWidth * 0.35f)
             )
         }
     }
+}
+
+@Composable
+fun SearchDialog(
+    allThemes: List<ZipThemes.ThemeFileName>,
+    onDismiss: () -> Unit,
+    onSelect: (ZipThemes.ThemeFileName) -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    var results by remember { mutableStateOf<List<ZipThemes.ThemeFileName>>(emptyList()) }
+    var isSearching by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    // البحث عند تغيير query
+    LaunchedEffect(query) {
+        if (query.isBlank()) {
+            results = emptyList()
+            return@LaunchedEffect
+        }
+        isSearching = true
+        withContext(kotlinx.coroutines.Dispatchers.Default) {
+            val lowerQuery = query.lowercase().trim()
+            val filtered = allThemes.filter { theme ->
+                theme.name.lowercase().contains(lowerQuery)
+            }.take(100)  // حد أقصى 100 نتيجة
+            withContext(kotlinx.coroutines.Dispatchers.Main) {
+                results = filtered
+                isSearching = false
+            }
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = "🔍 بحث في الثيمات", style = MaterialTheme.typography.titleLarge)
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text("اسم الثيم") },
+                    placeholder = { Text("اكتب اسم الثيم...") },
+                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                    trailingIcon = {
+                        if (query.isNotEmpty()) {
+                            IconButton(onClick = { query = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear")
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (isSearching) {
+                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                } else if (query.isBlank()) {
+                    Text(
+                        "اكتب اسم ثيم للبحث...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                } else if (results.isEmpty()) {
+                    Text(
+                        "❌ لا توجد نتائج لـ: $query",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                } else {
+                    Text(
+                        "✅ ${results.size} نتيجة",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                    androidx.compose.foundation.lazy.LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(400.dp)
+                    ) {
+                        items(results.size) { idx ->
+                            val theme = results[idx]
+                            androidx.compose.material3.Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                onClick = {
+                                    onSelect(theme)
+                                    onDismiss()
+                                }
+                            ) {
+                                Text(
+                                    theme.name,
+                                    modifier = Modifier.padding(12.dp),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("إغلاق")
+            }
+        }
+    )
 }
 
 @Composable
@@ -417,6 +542,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
 
     val lifecycle = LocalLifecycleOwner.current
     val gridState = rememberLazyGridState()
+    var showSearchDialog by remember { mutableStateOf(false) }
     val totalItems = 2 + customThemes.size + 2 + assetThemes.size + availableThemeOptions.size
     val scope = rememberCoroutineScope()
 
@@ -512,6 +638,19 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
             horizontalAlignment = Alignment.End
         ) {
             FloatingActionButton(
+                onClick = { showSearchDialog = true },
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search themes"
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            FloatingActionButton(
                 onClick = { onCustomTheme() },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -581,7 +720,22 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
             }
         }
     }
+
+    // ────── Search Dialog ──────
+    if (showSearchDialog) {
+        SearchDialog(
+            allThemes = customThemes + assetThemes,
+            onDismiss = { showSearchDialog = false },
+            onSelect = { theme ->
+                lifecycle.lifecycleScope.launch {
+                    context.setSetting(THEME_KEY, theme.toSetting())
+                }
+            }
+        )
+    }
 }
+
+
 
 @Preview
 @Composable
