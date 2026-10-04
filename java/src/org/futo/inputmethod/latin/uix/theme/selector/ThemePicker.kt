@@ -78,6 +78,11 @@ import org.futo.inputmethod.latin.uix.theme.presets.DynamicSystemTheme
 import org.futo.inputmethod.latin.uix.theme.presets.VoiceInputTheme
 import org.futo.inputmethod.updates.openURI
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.runtime.rememberCoroutineScope
 
 @Composable
 fun ThemePreview(theme: ThemeOption, isSelected: Boolean = false, overrideName: String? = null, modifier: Modifier = Modifier, onClick: () -> Unit = { }) {
@@ -347,11 +352,14 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
     val assetThemes = remember { ZipThemes.listAssets(context) }
 
     val lifecycle = LocalLifecycleOwner.current
+    val gridState = rememberLazyGridState()
+    val scope = rememberCoroutineScope()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 LazyVerticalGrid(
+                    state = gridState,
                     modifier = Modifier.fillMaxWidth(),
                     columns = GridCells.Adaptive(minSize = 172.dp),
                     horizontalArrangement = if (LocalLayoutDirection.current == LayoutDirection.Rtl) {
@@ -360,8 +368,14 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                         Arrangement.Start
                     }
                 ) {
+                    // ⭐ Custom themes (يظهر أولاً دائماً)
                     item(span = { GridItemSpan(maxCurrentLineSpan) }) {
-                        ScreenTitle(stringResource(R.string.theme_settings_custom_themes))
+                        ScreenTitle(
+                            if (customThemes.isEmpty())
+                                stringResource(R.string.theme_settings_custom_themes)
+                            else
+                                "⭐ " + stringResource(R.string.theme_settings_custom_themes) + " (${customThemes.size})"
+                        )
                     }
 
                     items(customThemes.size) {
@@ -375,7 +389,10 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                         }
                     }
 
+                    // فاصل
                     item(span = { GridItemSpan(maxCurrentLineSpan) }) { }
+
+                    // Default themes
                     item(span = { GridItemSpan(maxCurrentLineSpan) }) {
                         ScreenTitle(stringResource(R.string.theme_settings_default_themes))
                     }
@@ -411,7 +428,9 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
             }
         }
 
-        // FloatingActionButtons
+        // ────── الأزرار العائمة ──────
+
+        // الأزرار الرئيسية (أسفل اليمين)
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -441,6 +460,49 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                 Icon(
                     painter = painterResource(R.drawable.compass),
                     contentDescription = stringResource(R.string.theme_settings_visit_theme_store)
+                )
+            }
+        }
+
+        // أزرار التنقل السريع (أسفل اليسار)
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            // زر التمرير للأعلى
+            SmallFloatingActionButton(
+                onClick = {
+                    scope.launch {
+                        gridState.animateScrollToItem(0)
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowUp,
+                    contentDescription = "Scroll to top"
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // زر التمرير للأسفل (آخر ثيم)
+            SmallFloatingActionButton(
+                onClick = {
+                    scope.launch {
+                        val totalItems = 2 + customThemes.size + 2 + assetThemes.size + availableThemeOptions.size
+                        gridState.animateScrollToItem(totalItems - 1)
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Scroll to bottom"
                 )
             }
         }
