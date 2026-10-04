@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -413,6 +414,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
 
     val lifecycle = LocalLifecycleOwner.current
     val gridState = rememberLazyGridState()
+    val totalItems = 2 + customThemes.size + 2 + assetThemes.size + availableThemeOptions.size
     val scope = rememberCoroutineScope()
 
     Box(modifier = Modifier.fillMaxSize()) {
