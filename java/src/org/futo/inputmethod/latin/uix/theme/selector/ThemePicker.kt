@@ -350,6 +350,7 @@ fun CustomScrollbar(
     val visibleCount = state.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
     val scrollFraction = firstVisible.toFloat() / totalItems.toFloat()
     val visibleFraction = (visibleCount.toFloat() / totalItems.toFloat()).coerceIn(0.05f, 1f)
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = modifier
@@ -361,7 +362,9 @@ fun CustomScrollbar(
                     val dragFraction = dragAmount.y / trackHeight
                     val newFraction = (scrollFraction + dragFraction).coerceIn(0f, 1f)
                     val targetItem = (newFraction * totalItems).roundToInt().coerceIn(0, totalItems - 1)
-                    state.scrollToItem(targetItem)
+                    scope.launch {
+                        state.scrollToItem(targetItem)
+                    }
                 }
             }
     ) {
