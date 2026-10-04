@@ -155,6 +155,10 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.isCtrlPressed
+import android.content.Context
+import kotlinx.coroutines.runBlocking
+import org.futo.inputmethod.latin.uix.getSetting
+import kotlinx.coroutines.Job
 
 @Composable
 fun ThemePreview(theme: ThemeOption, isSelected: Boolean = false, overrideName: String? = null, modifier: Modifier = Modifier, onClick: () -> Unit = { }) {
@@ -398,58 +402,7 @@ fun VisitThemeStoreButton(short: Boolean = false) {
     }
 }
 
-@Composable
-fun CustomScrollbar(
-    state: LazyGridState,
-    modifier: Modifier = Modifier,
-    totalItems: Int
-) {
-    if (totalItems <= 0) return
 
-    val firstVisible = state.firstVisibleItemIndex
-    val visibleCount = state.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
-    val scrollFraction = firstVisible.toFloat() / totalItems.toFloat()
-    val visibleFraction = (visibleCount.toFloat() / totalItems.toFloat()).coerceIn(0.05f, 1f)
-    val scope = rememberCoroutineScope()
-
-    Box(
-        modifier = modifier
-            .width(24.dp)
-            .fillMaxHeight()
-            .pointerInput(totalItems) {
-                detectDragGestures { change, dragAmount ->
-                    change.consume()
-                    val trackHeight = size.height.toFloat()
-                    val dragFraction = dragAmount.y / trackHeight
-                    val newFraction = (scrollFraction + dragFraction).coerceIn(0f, 1f)
-                    val targetItem = (newFraction * totalItems).roundToInt().coerceIn(0, totalItems - 1)
-                    scope.launch {
-                        state.scrollToItem(targetItem)
-                    }
-                }
-            }
-    ) {
-        Canvas(modifier = Modifier.fillMaxHeight()) {
-            val trackHeight = size.height
-            val trackWidth = size.width
-            val thumbHeight = (trackHeight * visibleFraction).coerceAtLeast(100f)
-            val thumbOffset = (trackHeight - thumbHeight) * scrollFraction
-
-            drawRoundRect(
-                color = Color(0xFF4FC3F7).copy(alpha = 0.5f),
-                topLeft = Offset(trackWidth * 0.15f, 0f),
-                size = Size(trackWidth * 0.7f, trackHeight),
-                cornerRadius = CornerRadius(trackWidth * 0.25f)
-            )
-            drawRoundRect(
-                color = Color(0xFF4FC3F7),
-                topLeft = Offset(trackWidth * 0.05f, thumbOffset),
-                size = Size(trackWidth * 0.9f, thumbHeight),
-                cornerRadius = CornerRadius(trackWidth * 0.35f)
-            )
-        }
-    }
-}
 
 @Composable
 fun SearchDialog(
@@ -1320,6 +1273,19 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
     var favoritesVersion by remember { mutableStateOf(0) }
     var showDeleteMultiple by remember { mutableStateOf(false) }
     var colorEditTheme by remember { mutableStateOf<ZipThemes.ThemeFileName?>(null) }
+    var selectedColor by remember { mutableStateOf<String?>(null) }
+    var sortBy by remember { mutableStateOf(SortOption.ALPHABETICAL) }
+    var showSortDialog by remember { mutableStateOf(false) }
+    var previewTheme by remember { mutableStateOf<ZipThemes.ThemeFileName?>(null) }
+    var showStats by remember { mutableStateOf(false) }
+    var showAutoMode by remember { mutableStateOf(false) }
+    val backgroundPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        uri ?: return@rememberLauncherForActivityResult
+        android.widget.Toast.makeText(context, "تم اختيار الخلفية", android.widget.Toast.LENGTH_SHORT).show()
+    }
+    var scrollJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     
     // Import folder launcher
     val folderPicker = rememberLauncherForActivityResult(
@@ -1354,6 +1320,39 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                     } else {
                         Arrangement.Start
                     }
+                    // 🎚️ Slider للتنقل السريع
+                    item(span = { GridItemSpan(maxCurrentLineSpan) }) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                            Text(
+                                "📍 ${gridState.firstVisibleItemIndex + 1} / $totalItems",
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                            Slider(
+                                value = gridState.firstVisibleItemIndex.toFloat(),
+                                onValueChange = { newValue ->
+                                    scrollJob?.cancel()
+                                    scrollJob = scope.launch {
+                                        gridState.animateScrollToItem(
+                                            newValue.toInt().coerceIn(0, totalItems - 1)
+                                        )
+                                    }
+                                },
+                                valueRange = 0f..(totalItems - 1).toFloat().coerceAtLeast(1f),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                    
+                    // 🎨 فلتر الألوان
+                    item(span = { GridItemSpan(maxCurrentLineSpan) }) {
+                        ColorFilterRow(
+                            selectedColor = selectedColor,
+                            onSelect = { selectedColor = it }
+                        )
+                    }
+                    
+
                 ) {
                     // ⭐ Custom themes
                     item(span = { GridItemSpan(maxCurrentLineSpan) }) {
@@ -1416,16 +1415,6 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
             }
         }
 
-        // ────── Custom Scrollbar (Canvas-based) ──────
-        CustomScrollbar(
-            state = gridState,
-            totalItems = totalItems,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 4.dp, top = 100.dp, bottom = 220.dp)
-        )
-
-        // ────── أزرار متقدمة (أعلى اليمين) ──────
         Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
