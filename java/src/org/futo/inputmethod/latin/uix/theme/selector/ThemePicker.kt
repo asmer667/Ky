@@ -1350,7 +1350,6 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                     }
                     
 
-                ) {
                     // ⭐ Custom themes
                     item(span = { GridItemSpan(maxCurrentLineSpan) }) {
                         ScreenTitle(
