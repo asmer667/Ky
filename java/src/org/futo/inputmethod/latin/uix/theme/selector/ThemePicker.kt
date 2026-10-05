@@ -1285,6 +1285,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
     }
     // backgroundPicker معطّل (يسبب كراش في ActionWindow)
     // TODO: إعادة تفعيله بطريقة آمنة
+    var scrollJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     // Import folder launcher
     val scope = rememberCoroutineScope()
     val folderPicker = rememberLauncherForActivityResult(
