@@ -457,6 +457,8 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
             else -> BeamValues.highBeam
         }
 
+        val topK = if(useHighBeam) 4 else 1
+        
         val results = try {
             synchronized(BinaryDictionary.sTrieUsageLock) {
                 if(appliedTries?.isEmpty() != false) {

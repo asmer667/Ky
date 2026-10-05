@@ -1,6 +1,7 @@
+package org.futo.inputmethod.latin.uix.theme.selector
+
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
-package org.futo.inputmethod.latin.uix.theme.selector
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
