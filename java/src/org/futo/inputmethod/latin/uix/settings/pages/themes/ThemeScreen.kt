@@ -43,7 +43,6 @@ import org.futo.inputmethod.latin.uix.THEME_KEY
 import org.futo.inputmethod.latin.uix.findActivity
 import org.futo.inputmethod.latin.uix.settings.IMPORT_RESOURCE_FILE_REQUEST
 import org.futo.inputmethod.latin.uix.settings.RotatingChevronIcon
-import org.futo.inputmethod.latin.uix.settings.Route
 import org.futo.inputmethod.latin.uix.settings.ScreenTitle
 import org.futo.inputmethod.latin.uix.settings.useDataStore
 import org.futo.inputmethod.latin.uix.theme.ZipThemes

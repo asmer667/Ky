@@ -54,6 +54,14 @@ import org.futo.inputmethod.updates.checkForUpdateAndSaveToPreferences
 import org.futo.inputmethod.v2keyboard.LayoutManager
 import java.io.File
 import kotlin.math.sqrt
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 
 private fun Context.isInputMethodEnabled(): Boolean {
     val packageName = packageName
