@@ -1286,6 +1286,8 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
     // backgroundPicker معطّل (يسبب كراش في ActionWindow)
     // TODO: إعادة تفعيله بطريقة آمنة
     var scrollJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    var isScrolling by remember { mutableStateOf(false) }
+    var scrollRunnable by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     // Import folder launcher
     val scope = rememberCoroutineScope()
     val folderPicker = rememberLauncherForActivityResult(
@@ -1471,6 +1473,67 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                     Toast.makeText(context, "الخلفية المخصصة - قريباً", Toast.LENGTH_SHORT).show()
                 }
             )
+        }
+        
+        // ────── Floating Slider (عائم) ──────
+        androidx.compose.animation.AnimatedVisibility(
+            visible = isScrolling,
+            enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically(),
+            exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+        ) {
+            androidx.compose.material3.Surface(
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
+                shadowElevation = 8.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        "📍 ${gridState.firstVisibleItemIndex + 1} / $totalItems",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                    Slider(
+                        value = gridState.firstVisibleItemIndex.toFloat(),
+                        onValueChange = { newValue ->
+                            scrollJob?.cancel()
+                            scrollJob = scope.launch {
+                                gridState.animateScrollToItem(
+                                    newValue.toInt().coerceIn(0, totalItems - 1)
+                                )
+                            }
+                        },
+                        valueRange = 0f..(totalItems - 1).toFloat().coerceAtLeast(1f),
+                        colors = androidx.compose.material3.SliderDefaults.colors(
+                            thumbColor = Color(0xFF4FC3F7),
+                            activeTrackColor = Color(0xFF4FC3F7),
+                            inactiveTrackColor = Color(0xFF4FC3F7).copy(alpha = 0.3f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+        
+        // ────── المراقب: إظهار/إخفاء Slider عند التمرير ──────
+        LaunchedEffect(gridState.isScrollInProgress) {
+            if (gridState.isScrollInProgress) {
+                isScrolling = true
+                scrollRunnable?.cancel()
+            } else {
+                scrollRunnable?.cancel()
+                scrollRunnable = scope.launch {
+                    kotlinx.coroutines.delay(1500L)
+                    isScrolling = false
+                }
+            }
         }
         
         // ────── الأزرار الرئيسية (أسفل اليمين) ──────
