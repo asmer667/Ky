@@ -1266,6 +1266,12 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
     var colorEditTheme by remember { mutableStateOf<ZipThemes.ThemeFileName?>(null) }
     var selectedColor by remember { mutableStateOf<String?>(null) }
     var sortBy by remember { mutableStateOf(SortOption.ALPHABETICAL) }
+        
+    var showSortDialog by remember { mutableStateOf(false) }
+    var previewTheme by remember { mutableStateOf<ZipThemes.ThemeFileName?>(null) }
+    var showStats by remember { mutableStateOf(false) }
+    var showAutoMode by remember { mutableStateOf(false) }
+    var showFavoritesOnly by remember { mutableStateOf(false) }
     val assetThemes = remember(selectedColor, sortBy, showFavoritesOnly) {
         var filtered = if (selectedColor == null) allAssetThemes
         else allAssetThemes.filter { themeMatchesColor(it.name, selectedColor) }
@@ -1277,15 +1283,8 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
         
         sortThemes(filtered, sortBy, context)
     }
-    var showSortDialog by remember { mutableStateOf(false) }
-    var previewTheme by remember { mutableStateOf<ZipThemes.ThemeFileName?>(null) }
-    var showStats by remember { mutableStateOf(false) }
-    var showAutoMode by remember { mutableStateOf(false) }
-    var showFavoritesOnly by remember { mutableStateOf(false) }
     // backgroundPicker معطّل (يسبب كراش في ActionWindow)
     // TODO: إعادة تفعيله بطريقة آمنة
-    var scrollJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
-    
     // Import folder launcher
     val scope = rememberCoroutineScope()
     val folderPicker = rememberLauncherForActivityResult(
