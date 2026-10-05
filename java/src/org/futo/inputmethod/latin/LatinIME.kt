@@ -628,6 +628,7 @@ class LatinIME : InputMethodServiceCompose(), LatinIMELegacy.SuggestionStripCont
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         applyStoredFont()
+        applyStoredFontScale()
         onSizeMaybeUpdated()
         imeManager.onStartInput()
         latinIMELegacy.onStartInputView(info, restarting)
@@ -640,6 +641,22 @@ class LatinIME : InputMethodServiceCompose(), LatinIMELegacy.SuggestionStripCont
      * Font feature: يقرأ الخط المختار من SharedPreferences ويُطبّقه.
      * يُستدعى من onStartInputView.
      */
+    /**
+     * Font scale: يقرأ حجم/عرض النص من SharedPreferences ويُطبّقه.
+     */
+    private fun applyStoredFontScale() {
+        try {
+            val prefs = getSharedPreferences("font_prefs", MODE_PRIVATE)
+            val textScale = prefs.getFloat("text_scale", 1.0f)
+            val widthScale = prefs.getFloat("width_scale", 1.0f)
+            org.futo.inputmethod.latin.uix.FontScaleState.textScale = textScale
+            org.futo.inputmethod.latin.uix.FontScaleState.widthScale = widthScale
+            invalidateKeyboard()
+        } catch (e: Exception) {
+            android.util.Log.w("LatinIME", "applyStoredFontScale failed", e)
+        }
+    }
+
     private fun applyStoredFont() {
         try {
             val prefs = getSharedPreferences("font_prefs", MODE_PRIVATE)

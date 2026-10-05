@@ -13,6 +13,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
@@ -179,7 +180,41 @@ class SettingsActivity : ComponentActivity(), DynamicThemeProviderOwner {
                                     inputMethodSelected.value,
                                     doublePackage.value
                                 ) {
-                                    SettingsNavigator(navController = navController)
+                                    androidx.compose.foundation.layout.Box(
+                                        androidx.compose.ui.Modifier.fillMaxSize()
+                                    ) {
+                                        SettingsNavigator(navController = navController)
+
+                                        // ✅ FABs عالمية — تظهر في كل الصفحات (يمين-أسفل)
+                                        androidx.compose.foundation.layout.Row(
+                                            androidx.compose.ui.Modifier
+                                                .align(androidx.compose.ui.Alignment.BottomEnd)
+                                                .padding(16.dp),
+                                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            androidx.compose.material3.SmallFloatingActionButton(
+                                                onClick = {
+                                                    try {
+                                                        navController.navigate(org.futo.inputmethod.latin.uix.settings.Route.Fonts)
+                                                    } catch (e: Exception) { }
+                                                }
+                                            ) {
+                                                androidx.compose.material3.Icon(
+                                                    androidx.compose.material.icons.Icons.Default.Add,
+                                                    contentDescription = "الخطوط"
+                                                )
+                                            }
+                                            androidx.compose.material3.SmallFloatingActionButton(
+                                                onClick = {
+                                                    try {
+                                                        navController.navigate(org.futo.inputmethod.latin.uix.settings.Route.FontScale)
+                                                    } catch (e: Exception) { }
+                                                }
+                                            ) {
+                                                androidx.compose.material3.Text("Aa")
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

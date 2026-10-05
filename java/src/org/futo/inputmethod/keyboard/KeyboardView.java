@@ -34,6 +34,7 @@ import android.util.AttributeSet;
 import android.view.View;
 
 import org.futo.inputmethod.keyboard.internal.KeyDrawParams;
+import org.futo.inputmethod.latin.uix.FontScaleState;
 import org.futo.inputmethod.keyboard.internal.KeyVisualAttributes;
 import org.futo.inputmethod.latin.uix.DynamicThemeProvider;
 import org.futo.inputmethod.latin.R;
@@ -659,13 +660,17 @@ public class KeyboardView extends View {
     public Paint newLabelPaint(@Nullable final Key key) {
         final Paint paint = new Paint();
         paint.setAntiAlias(true);
+        final float __fs = FontScaleState.INSTANCE.getTextScale();
+        final float __fw = FontScaleState.INSTANCE.getWidthScale();
         if (key == null) {
             paint.setTypeface(mKeyDrawParams.mTypeface);
-            paint.setTextSize(mKeyDrawParams.mLabelSize);
+            paint.setTextSize(mKeyDrawParams.mLabelSize * __fs);
+            paint.setTextScaleX(__fw);
         } else {
             paint.setColor(key.selectTextColor(mDrawableProvider, mKeyDrawParams));
             paint.setTypeface(mDrawableProvider.selectKeyTypeface(key.selectTypeface(mKeyDrawParams)));
-            paint.setTextSize(key.selectTextSize(mKeyDrawParams));
+            paint.setTextSize(key.selectTextSize(mKeyDrawParams) * __fs);
+            paint.setTextScaleX(__fw);
         }
         return paint;
     }

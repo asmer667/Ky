@@ -69,6 +69,7 @@ import org.futo.inputmethod.latin.uix.settings.pages.themes.CustomThemeScreen
 import org.futo.inputmethod.latin.uix.settings.pages.themes.DeleteCustomThemeDialog
 import org.futo.inputmethod.latin.uix.settings.pages.themes.ThemeScreen
 import org.futo.inputmethod.latin.uix.settings.pages.fonts.FontScreen
+import org.futo.inputmethod.latin.uix.settings.pages.fonts.FontScaleScreen
 
 // Utility function for quick error messages
 fun NavHostController.navigateToError(title: String, body: String) {
@@ -92,6 +93,7 @@ object Route {
     @Serializable data class DeleteTheme(val name: String)
     @Serializable data class ThirdPartyInfo(val idx: Int)
     @Serializable object Fonts
+    @Serializable object FontScale
 }
 
 
@@ -173,6 +175,7 @@ fun SettingsNavigator(
             composable("resize") { ResizeScreen(navController) }
             composable("themes") { ThemeScreen(navController) }
             composable<Route.Fonts> { FontScreen(navController) }
+            composable<Route.FontScale> { FontScaleScreen(navController) }
             composable("developer") { DeveloperScreen(navController) }
             composable("devtextedit") { DevEditTextVariationsScreen(navController) }
             composable("devbuggytextedit") { BuggyTextEditVariations(navController) }
