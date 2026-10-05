@@ -457,19 +457,26 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
             else -> BeamValues.highBeam
         }
 
-        val topK = if(useHighBeam) 4 else 1
-
-        val results = synchronized(BinaryDictionary.sTrieUsageLock) {
-            if(appliedTries?.isEmpty() != false) {
-                Log.e("SwipeDecoderDictionary", "Applied tries are blank! $appliedTries")
-                return null
+        val results = try {
+            synchronized(BinaryDictionary.sTrieUsageLock) {
+                if(appliedTries?.isEmpty() != false) {
+                    Log.e("SwipeDecoderDictionary", "Applied tries are blank! $appliedTries")
+                    return null
+                }
+                decoder.recognize(
+                    left.toTypedArray(), right.toTypedArray(),
+                    topK = topK,
+                    beamWidth = beamWidth,
+                    trieWeights = trieWeights
+                )
             }
-            decoder.recognize(
-                 left.toTypedArray(), right.toTypedArray(),
-                 topK = topK,
-                 beamWidth = beamWidth,
-                 trieWeights = trieWeights
-            )
+        } catch (e: OutOfMemoryError) {
+            Log.e("SwipeDecoderDictionary", "OutOfMemory during recognize", e)
+            System.gc()
+            return null
+        } catch (e: Exception) {
+            Log.e("SwipeDecoderDictionary", "Error during recognize", e)
+            return null
         }
 
         // basically update it at end of swiping
