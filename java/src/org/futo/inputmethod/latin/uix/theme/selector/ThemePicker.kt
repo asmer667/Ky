@@ -1266,21 +1266,23 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
     var colorEditTheme by remember { mutableStateOf<ZipThemes.ThemeFileName?>(null) }
     var selectedColor by remember { mutableStateOf<String?>(null) }
     var sortBy by remember { mutableStateOf(SortOption.ALPHABETICAL) }
-    val assetThemes = remember(selectedColor, sortBy) {
-        val filtered = if (selectedColor == null) allAssetThemes
+    val assetThemes = remember(selectedColor, sortBy, showFavoritesOnly) {
+        var filtered = if (selectedColor == null) allAssetThemes
         else allAssetThemes.filter { themeMatchesColor(it.name, selectedColor) }
+        
+        if (showFavoritesOnly) {
+            val favorites = ZipThemes.getFavorites(context)
+            filtered = filtered.filter { it.name in favorites }
+        }
+        
         sortThemes(filtered, sortBy, context)
     }
     var showSortDialog by remember { mutableStateOf(false) }
     var previewTheme by remember { mutableStateOf<ZipThemes.ThemeFileName?>(null) }
     var showStats by remember { mutableStateOf(false) }
     var showAutoMode by remember { mutableStateOf(false) }
-    val backgroundPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri: Uri? ->
-        uri ?: return@rememberLauncherForActivityResult
-        android.widget.Toast.makeText(context, "تم اختيار الخلفية", android.widget.Toast.LENGTH_SHORT).show()
-    }
+    // backgroundPicker معطّل (يسبب كراش في ActionWindow)
+    // TODO: إعادة تفعيله بطريقة آمنة
     var scrollJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     
     // Import folder launcher
@@ -1448,7 +1450,12 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                     showSortDialog = true
                 },
                 onFavorites = {
-                    Toast.makeText(context, "المفضلة - قريباً", Toast.LENGTH_SHORT).show()
+                    showFavoritesOnly = !showFavoritesOnly
+                    Toast.makeText(
+                        context,
+                        if (showFavoritesOnly) "عرض المفضلة فقط" else "عرض كل الثيمات",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 },
                 onStats = {
                     showStats = true
@@ -1460,9 +1467,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                     showAutoMode = true
                 },
                 onCustomBackground = {
-                    backgroundPicker.launch(
-                        PickVisualMediaRequest(PickVisualMedia.ImageOnly)
-                    )
+                    Toast.makeText(context, "الخلفية المخصصة - قريباً", Toast.LENGTH_SHORT).show()
                 }
             )
         }
