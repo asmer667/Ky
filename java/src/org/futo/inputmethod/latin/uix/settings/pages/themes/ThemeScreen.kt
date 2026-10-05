@@ -191,13 +191,24 @@ fun ThemeScreen(navController: NavHostController = rememberNavController()) {
 
     Scaffold(
         floatingActionButton = {
-            if (enableKeyboardPreview) {
-                SmallFloatingActionButton(
-                    onClick = {
-                        showKeyboard = !showKeyboard
+            Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
+                if (enableKeyboardPreview) {
+                    SmallFloatingActionButton(
+                        onClick = {
+                            showKeyboard = !showKeyboard
+                        }
+                    ) {
+                        RotatingChevronIcon(!showKeyboard)
                     }
+                }
+                // ✨ FAB الخطوط الجديد
+                SmallFloatingActionButton(
+                    onClick = { navController.navigate(Route.Fonts) }
                 ) {
-                    RotatingChevronIcon(!showKeyboard)
+                    androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Default.Add,
+                        contentDescription = "الخطوط"
+                    )
                 }
             }
         },

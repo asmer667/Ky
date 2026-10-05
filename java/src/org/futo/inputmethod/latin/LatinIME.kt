@@ -627,12 +627,45 @@ class LatinIME : InputMethodServiceCompose(), LatinIMELegacy.SuggestionStripCont
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
+        applyStoredFont()
         onSizeMaybeUpdated()
         imeManager.onStartInput()
         latinIMELegacy.onStartInputView(info, restarting)
         lifecycleScope.launch { uixManager.showUpdateNoticeIfNeeded() }
         updateColorsIfDynamicChanged()
         uixManager.updateEmojiTranslationsIfNeeded()
+    }
+
+    /**
+     * Font feature: يقرأ الخط المختار من SharedPreferences ويُطبّقه.
+     * يُستدعى من onStartInputView.
+     */
+    private fun applyStoredFont() {
+        try {
+            val prefs = getSharedPreferences("font_prefs", MODE_PRIVATE)
+            val currentSubtype = currentInputMethodSubtype
+            val locale = currentSubtype?.locale ?: ""
+            val isArabic = locale.startsWith("ar")
+
+            val path = if (isArabic)
+                prefs.getString("font_path_arabic", null)
+            else
+                prefs.getString("font_path_english", null)
+
+            if (path.isNullOrEmpty()) return
+
+            val file = java.io.File(path)
+            if (!file.exists() || file.length() < 1000) return
+
+            val tf = android.graphics.Typeface.createFromFile(file)
+            val provider = getDrawableProvider()
+            if (provider.typefaceOverride != tf) {
+                provider.typefaceOverride = tf
+                invalidateKeyboard()
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("LatinIME", "applyStoredFont failed", e)
+        }
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
