@@ -1281,6 +1281,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
     var previewTheme by remember { mutableStateOf<ZipThemes.ThemeFileName?>(null) }
     var showStats by remember { mutableStateOf(false) }
     var showAutoMode by remember { mutableStateOf(false) }
+    var showFavoritesOnly by remember { mutableStateOf(false) }
     // backgroundPicker معطّل (يسبب كراش في ActionWindow)
     // TODO: إعادة تفعيله بطريقة آمنة
     var scrollJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
