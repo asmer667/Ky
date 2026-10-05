@@ -1,3 +1,5 @@
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 package org.futo.inputmethod.latin.uix.theme.selector
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -1476,6 +1478,21 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
         }
         
         // ────── Floating Slider (عائم) ──────
+        val sliderInteractionSource = remember { MutableInteractionSource() }
+        val isSliderPressed by sliderInteractionSource.collectIsPressedAsState()
+        
+        LaunchedEffect(isSliderPressed) {
+            if (isSliderPressed) {
+                isScrolling = true
+                scrollRunnable?.cancel()
+            } else {
+                scrollRunnable?.cancel()
+                scrollRunnable = scope.launch {
+                    kotlinx.coroutines.delay(1500L)
+                    isScrolling = false
+                }
+            }
+        }
         androidx.compose.animation.AnimatedVisibility(
             visible = isScrolling,
             enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically(),
@@ -1501,6 +1518,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
                     Slider(
+                        interactionSource = sliderInteractionSource,
                         value = gridState.firstVisibleItemIndex.toFloat(),
                         onValueChange = { newValue ->
                             scrollJob?.cancel()
