@@ -1335,7 +1335,7 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                                 onValueChange = { newValue ->
                                     scrollJob?.cancel()
                                     scrollJob = scope.launch {
-                                        gridState.animateScrollToItem(
+                                        gridState.scrollToItem(
                                             newValue.toInt().coerceIn(0, totalItems - 1)
                                         )
                                     }
@@ -1505,7 +1505,8 @@ fun ThemePicker(onDeleteCustomTheme: (String) -> Unit, onCustomTheme: () -> Unit
                         onValueChange = { newValue ->
                             scrollJob?.cancel()
                             scrollJob = scope.launch {
-                                gridState.animateScrollToItem(
+                                // scrollToItem فوري — يتبع الإصبع بدقة
+                                gridState.scrollToItem(
                                     newValue.toInt().coerceIn(0, totalItems - 1)
                                 )
                             }
