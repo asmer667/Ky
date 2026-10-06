@@ -50,6 +50,7 @@ import org.futo.inputmethod.latin.uix.theme.Typography
 import org.futo.inputmethod.latin.uix.theme.selector.ThemePicker
 import org.futo.inputmethod.latin.uix.theme.selector.ZipThemePreview
 import org.futo.inputmethod.latin.uix.urlEncode
+import org.futo.inputmethod.latin.uix.settings.Route
 
 
 @Composable

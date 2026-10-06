@@ -660,8 +660,7 @@ class LatinIME : InputMethodServiceCompose(), LatinIMELegacy.SuggestionStripCont
     private fun applyStoredFont() {
         try {
             val prefs = getSharedPreferences("font_prefs", MODE_PRIVATE)
-            val currentSubtype = inputMethodSubtype
-            val locale = currentSubtype?.locale ?: ""
+            val locale = resources.configuration.locales[0].language
             val isArabic = locale.startsWith("ar")
 
             val path = if (isArabic)
