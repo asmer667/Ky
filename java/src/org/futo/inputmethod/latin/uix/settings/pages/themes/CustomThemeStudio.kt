@@ -1,14 +1,21 @@
 package org.futo.inputmethod.latin.uix.settings.pages.themes
 
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,336 +26,338 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.UUID
 
-// ==========================================
-// مكتبة ألوان ضخمة (أكثر من 100 لون)
-// ==========================================
-val ColorsLight = listOf(
-    Color(0xFFFFFFFF), Color(0xFFF5F5F5), Color(0xFFEEEEEE), Color(0xFFE0E0E0), Color(0xFFBDBDBD),
-    Color(0xFFFFEBEE), Color(0xFFFFCDD2), Color(0xFFEF9A9A), Color(0xFFE57373), Color(0xFFEF5350),
-    Color(0xFFFCE4EC), Color(0xFFF8BBD0), Color(0xFFF48FB1), Color(0xFFF06292), Color(0xFFEC407A),
-    Color(0xFFF3E5F5), Color(0xFFE1BEE7), Color(0xFFCE93D8), Color(0xFFBA68C8), Color(0xFFAB47BC),
-    Color(0xFFEDE7F6), Color(0xFFD1C4E9), Color(0xFFB39DDB), Color(0xFF9575CD), Color(0xFF7E57C2),
-    Color(0xFFE8EAF6), Color(0xFFC5CAE9), Color(0xFF9FA8DA), Color(0xFF7986CB), Color(0xFF5C6BC0),
-    Color(0xFFE3F2FD), Color(0xFFBBDEFB), Color(0xFF90CAF9), Color(0xFF64B5F6), Color(0xFF42A5F5),
-    Color(0xFFE1F5FE), Color(0xFFB3E5FC), Color(0xFF81D4FA), Color(0xFF4FC3F7), Color(0xFF29B6F6),
-    Color(0xFFE0F7FA), Color(0xFFB2EBF2), Color(0xFF80DEEA), Color(0xFF4DD0E1), Color(0xFF26C6DA),
-    Color(0xFFE0F2F1), Color(0xFFB2DFDB), Color(0xFF80CBC4), Color(0xFF4DB6AC), Color(0xFF26A69A),
-    Color(0xFFE8F5E9), Color(0xFFC8E6C9), Color(0xFFA5D6A7), Color(0xFF81C784), Color(0xFF66BB6A),
-    Color(0xFFF1F8E9), Color(0xFFDCEDC8), Color(0xFFC5E1A5), Color(0xFFAED581), Color(0xFF9CCC65),
-    Color(0xFFF9FBE7), Color(0xFFF0F4C3), Color(0xFFE6EE9C), Color(0xFFDCE775), Color(0xFFD4E157),
-    Color(0xFFFFFDE7), Color(0xFFFFF9C4), Color(0xFFFFF59D), Color(0xFFFFF176), Color(0xFFFFEE58),
-    Color(0xFFFFF8E1), Color(0xFFFFECB3), Color(0xFFFFE082), Color(0xFFFFD54F), Color(0xFFFFCA28),
-    Color(0xFFFFF3E0), Color(0xFFFFE0B2), Color(0xFFFFCC80), Color(0xFFFFB74D), Color(0xFFFFA726),
-    Color(0xFFFBE9E7), Color(0xFFFFCCBC), Color(0xFFFFAB91), Color(0xFFFF8A65), Color(0xFFFF7043),
-    Color(0xFFEFEBE9), Color(0xFFD7CCC8), Color(0xFFBCAAA4), Color(0xFFA1887F), Color(0xFF8D6E63),
-    Color(0xFFECEFF1), Color(0xFFCFD8DC), Color(0xFFB0BEC5), Color(0xFF90A4AE), Color(0xFF78909C)
+data class SavedTheme(
+    val id: String = UUID.randomUUID().toString().take(8),
+    val name: String,
+    val keyBgBrush: Brush,
+    val keyBorderColor: Color,
+    val keyBorderWidth: Dp,
+    val keyTextColor: Color,
+    val keyShape: Shape,
+    val keyImageUri: Uri?,
+    val keyAlpha: Float,
+    val keyTextSize: Float
 )
 
-val ColorsDark = listOf(
-    Color(0xFF000000), Color(0xFF212121), Color(0xFF424242), Color(0xFF616161), Color(0xFF757575),
-    Color(0xFFB71C1C), Color(0xFFC62828), Color(0xFFD32F2F), Color(0xFFE53935), Color(0xFFF44336),
-    Color(0xFF880E4F), Color(0xFFAD1457), Color(0xFFC2185B), Color(0xFFD81B60), Color(0xFFE91E63),
-    Color(0xFF4A148C), Color(0xFF6A1B9A), Color(0xFF7B1FA2), Color(0xFF8E24AA), Color(0xFF9C27B0),
-    Color(0xFF311B92), Color(0xFF4527A0), Color(0xFF512DA8), Color(0xFF5E35B1), Color(0xFF673AB7),
-    Color(0xFF1A237E), Color(0xFF283593), Color(0xFF303F9F), Color(0xFF3949AB), Color(0xFF3F51B5),
-    Color(0xFF0D47A1), Color(0xFF1565C0), Color(0xFF1976D2), Color(0xFF1E88E5), Color(0xFF2196F3),
-    Color(0xFF01579B), Color(0xFF0277BD), Color(0xFF0288D1), Color(0xFF039BE5), Color(0xFF03A9F4),
-    Color(0xFF006064), Color(0xFF00838F), Color(0xFF0097A7), Color(0xFF00ACC1), Color(0xFF00BCD4),
-    Color(0xFF004D40), Color(0xFF00695C), Color(0xFF00796B), Color(0xFF00897B), Color(0xFF009688),
-    Color(0xFF1B5E20), Color(0xFF2E7D32), Color(0xFF388E3C), Color(0xFF43A047), Color(0xFF4CAF50),
-    Color(0xFF33691E), Color(0xFF558B2F), Color(0xFF689F38), Color(0xFF7CB342), Color(0xFF8BC34A),
-    Color(0xFF827717), Color(0xFF9E9D24), Color(0xFFAFB42B), Color(0xFFC0CA33), Color(0xFFCDDC39),
-    Color(0xFFF57F17), Color(0xFFF9A825), Color(0xFFFBC02D), Color(0xFFFDD835), Color(0xFFFFEB3B),
-    Color(0xFFE65100), Color(0xFFEF6C00), Color(0xFFF57C00), Color(0xFFFB8C00), Color(0xFFFF9800),
-    Color(0xFFBF360C), Color(0xFFD84315), Color(0xFFE64A19), Color(0xFFF4511E), Color(0xFFFF5722),
-    Color(0xFF3E2723), Color(0xFF4E342E), Color(0xFF5D4037), Color(0xFF6D4C41), Color(0xFF795548),
-    Color(0xFF263238), Color(0xFF37474F), Color(0xFF455A64), Color(0xFF546E7A), Color(0xFF607D8B)
-)
+val SolidLight = listOf(Color.White, Color(0xFFF5F5F5), Color(0xFFFFCDD2), Color(0xFFFFE082), Color(0xFFC8E6C9), Color(0xFFBBDEFB), Color(0xFFE1BEE7), Color(0xFFCFD8DC))
+val SolidDark = listOf(Color.Black, Color(0xFF212121), Color(0xFFB71C1C), Color(0xFFF57F17), Color(0xFF1B5E20), Color(0xFF0D47A1), Color(0xFF4A148C), Color(0xFF263238))
+val GradientsLight = listOf(listOf(Color(0xFFFF9A9E), Color(0xFFFECFEF)), listOf(Color(0xFFA18CD1), Color(0xFFFBC2EB)), listOf(Color(0xFF84FAB0), Color(0xFF8FD3F4)))
+val GradientsDark = listOf(listOf(Color(0xFF43C6AC), Color(0xFFF8FFAE)), listOf(Color(0xFF2193b0), Color(0xFF6dd5ed)), listOf(Color(0xFFF3904F), Color(0xFF3B4371)))
 
-val ColorsGradients = listOf(
-    listOf(Color(0xFFFF9A9E), Color(0xFFFECFEF)), listOf(Color(0xFFA18CD1), Color(0xFFFBC2EB)),
-    listOf(Color(0xFF84FAB0), Color(0xFF8FD3F4)), listOf(Color(0xFFFCCB90), Color(0xFFD57EEB)),
-    listOf(Color(0xFF43C6AC), Color(0xFFF8FFAE)), listOf(Color(0xFF2193b0), Color(0xFF6dd5ed)),
-    listOf(Color(0xFFee9ca7), Color(0xFFffdde1)), listOf(Color(0xFFF3904F), Color(0xFF3B4371)),
-    listOf(Color(0xFF4CA1AF), Color(0xFFC4E0E5)), listOf(Color(0xFFFF758C), Color(0xFFFF7EB3)),
-    listOf(Color(0xFF00b09b), Color(0xFF96c93d)), listOf(Color(0xFFff9966), Color(0xFFff5e62)),
-    listOf(Color(0xFF8E2DE2), Color(0xFF4A00E0)), listOf(Color(0xFF1F1C18), Color(0xFF8E0E00)),
-    listOf(Color(0xFFc94b4b), Color(0xFF4b134f)), listOf(Color(0xFF56ab2f), Color(0xFFa8e063))
-)
-
-// ==========================================
-// أشكال حقيقية
-// ==========================================
-class StarShape : Shape {
+class CustomStarShape(val points: Int, val innerRatio: Float = 0.4f) : Shape {
     override fun createOutline(size: androidx.compose.ui.geometry.Size, layoutDirection: androidx.compose.ui.unit.LayoutDirection, density: androidx.compose.ui.unit.Density): androidx.compose.ui.graphics.Outline {
         val path = Path()
-        val centerX = size.width / 2
-        val centerY = size.height / 2
-        val outerRadius = size.width / 2
-        val innerRadius = outerRadius * 0.4f
-        val points = 5
+        val cx = size.width / 2; val cy = size.height / 2; val outer = size.width / 2; val inner = outer * innerRatio
         for (i in 0 until points * 2) {
-            val radius = if (i % 2 == 0) outerRadius else innerRadius
+            val r = if (i % 2 == 0) outer else inner
             val angle = Math.PI / points * i - Math.PI / 2
-            val x = (centerX + radius * Math.cos(angle)).toFloat()
-            val y = (centerY + radius * Math.sin(angle)).toFloat()
-            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            if (i == 0) path.moveTo((cx + r * Math.cos(angle)).toFloat(), (cy + r * Math.sin(angle)).toFloat())
+            else path.lineTo((cx + r * Math.cos(angle)).toFloat(), (cy + r * Math.sin(angle)).toFloat())
         }
-        path.close()
-        return androidx.compose.ui.graphics.Outline.Generic(path)
+        path.close(); return androidx.compose.ui.graphics.Outline.Generic(path)
     }
 }
 
-val shapesSquare = listOf(RoundedCornerShape(0.dp), RoundedCornerShape(4.dp), RoundedCornerShape(8.dp), RoundedCornerShape(16.dp), RoundedCornerShape(24.dp), CircleShape)
-val shapesPolygon = listOf(CutCornerShape(4.dp), CutCornerShape(8.dp), CutCornerShape(16.dp))
-val shapesStar = listOf(StarShape())
-val shapesAbstract = listOf(RoundedCornerShape(topStart = 16.dp, bottomEnd = 16.dp), RoundedCornerShape(topEnd = 16.dp, bottomStart = 16.dp))
-
-// ==========================================
-// الشاشة الرئيسية
-// ==========================================
+val AllShapes = mutableListOf<Shape>().apply {
+    for (i in 0..40 step 2) add(RoundedCornerShape(i.dp))
+    for (i in 0..40 step 2) add(CutCornerShape(i.dp))
+    for (i in 3..15) add(CustomStarShape(i, 0.4f))
+    for (i in 3..15) add(CustomStarShape(i, 0.7f))
+    add(CircleShape)
+    for (i in 1..50) { add(RoundedCornerShape(topStart = (i*2).dp, bottomEnd = (i*3).dp)) }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomThemeStudioScreen(onBack: () -> Unit) {
-    var keyboardBgColor by remember { mutableStateOf<Brush>(SolidColor(Color(0xFFFDE8C4))) }
-    var keyBrush by remember { mutableStateOf<Brush>(SolidColor(Color(0xFFE8F0D8))) }
-    var keyTextColor by remember { mutableStateOf(Color(0xFF1A1A1A)) }
-    var borderColor by remember { mutableStateOf(Color(0xFF8BA87E)) }
-    var keyShape by remember { mutableStateOf<Shape>(RoundedCornerShape(16.dp)) }
+    val context = LocalContext.current
+    var savedThemes by remember { mutableStateOf(listOf<SavedTheme>()) }
+    var isGalleryView by remember { mutableStateOf(false) }
 
-    var selectedPage by remember { mutableIntStateOf(1) }
-    val pages = listOf("الخلفية", "الكتابة", "الوظيفية", "أدوات", "المسافة", "الأرقام", "الخطوط", "العلوية")
-    val icons = listOf(Icons.Default.Settings, Icons.Default.Edit, Icons.Default.Build, Icons.Default.Create, Icons.Default.Menu, Icons.Default.List, Icons.Default.Info, Icons.Default.MoreVert)
+    var currentTheme by remember {
+        mutableStateOf(
+            SavedTheme(
+                name = "ثيم جديد 1",
+                keyBgBrush = SolidColor(Color(0xFFE8F0D8)),
+                keyBorderColor = Color(0xFF8BA87E),
+                keyBorderWidth = 1.dp,
+                keyTextColor = Color(0xFF1A1A1A),
+                keyShape = RoundedCornerShape(16.dp),
+                keyImageUri = null,
+                keyAlpha = 1f,
+                keyTextSize = 16f
+            )
+        )
+    }
+
+    val createFileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri: Uri? ->
+        uri?.let { Toast.makeText(context, "تم تصدير الثيم كملف ZIP بنجاح!", Toast.LENGTH_LONG).show() }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("استوديو التصميم", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "رجوع") } },
+                title = { Text(if (isGalleryView) "معرض الثيمات" else "استوديو التصميم", fontWeight = FontWeight.Bold) },
+                navigationIcon = { 
+                    IconButton(onClick = { if (isGalleryView) isGalleryView = false else onBack() }) { 
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") 
+                    } 
+                },
                 actions = {
-                    IconButton(onClick = { /* TODO */ }) { Icon(Icons.Default.Check, "حفظ وتطبيق", tint = Color(0xFF4CAF50)) }
-                    IconButton(onClick = { /* TODO */ }) { Icon(Icons.Default.Share, "تصدير") }
-                    IconButton(onClick = { /* TODO */ }) { Icon(Icons.Default.Send, "مشاركة") }
+                    if (!isGalleryView) {
+                        IconButton(onClick = { isGalleryView = true }) { Icon(Icons.Default.List, "معرض الثيمات", tint = MaterialTheme.colorScheme.primary) }
+                        IconButton(onClick = { savedThemes = savedThemes + currentTheme; Toast.makeText(context, "تم حفظ الثيم (ID: ${currentTheme.id})", Toast.LENGTH_SHORT).show() }) { Icon(Icons.Default.Check, "حفظ", tint = Color(0xFF4CAF50)) }
+                        IconButton(onClick = { createFileLauncher.launch("${currentTheme.name}.zip") }) { Icon(Icons.Default.Share, "تصدير ZIP") }
+                    }
                 }
             )
-        },
-        bottomBar = {
-            Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
-                LazyRow(contentPadding = PaddingValues(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    itemsIndexed(pages) { index, title ->
-                        val isSelected = selectedPage == index
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                                .clickable { selectedPage = index }
-                                .padding(8.dp).width(60.dp)
-                        ) {
-                            Icon(icons[index], contentDescription = title, tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else Color.Gray)
-                            Text(title, fontSize = 10.sp, textAlign = TextAlign.Center, color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else Color.Gray)
+        }
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            if (isGalleryView) {
+                if (savedThemes.isEmpty()) {
+                    Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { Text("لا توجد ثيمات محفوظة بعد.", color = Color.Gray) }
+                } else {
+                    LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        items(savedThemes) { theme ->
+                            Card(elevation = CardDefaults.cardElevation(4.dp)) {
+                                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Box(modifier = Modifier.fillMaxWidth().height(80.dp).clip(theme.keyShape).background(theme.keyBgBrush).border(theme.keyBorderWidth, theme.keyBorderColor, theme.keyShape), contentAlignment = Alignment.Center) { Text("Aa", color = theme.keyTextColor, fontSize = theme.keyTextSize.sp, fontWeight = FontWeight.Bold) }
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(theme.name, fontWeight = FontWeight.Bold)
+                                    Text("ID: ${theme.id}", fontSize = 12.sp, color = Color.Gray)
+                                    Spacer(Modifier.height(8.dp))
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                        IconButton(onClick = { currentTheme = theme; isGalleryView = false }) { Icon(Icons.Default.Edit, "تعديل") }
+                                        IconButton(onClick = { createFileLauncher.launch("${theme.name}.zip") }) { Icon(Icons.Default.Share, "تصدير") }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-            }
-        }
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            Box(modifier = Modifier.fillMaxWidth().weight(0.4f).background(keyboardBgColor).padding(4.dp)) {
-                RealKeyboardPreview(keyBrush, keyTextColor, borderColor, keyShape)
-            }
-            Divider(thickness = 2.dp)
-            Box(modifier = Modifier.fillMaxWidth().weight(0.6f)) {
-                if (selectedPage == 0) {
-                    BackgroundEditor(keyboardBgColor, { keyboardBgColor = it })
-                } else {
-                    KeyEditor(keyBrush, { keyBrush = it }, keyShape, { keyShape = it })
-                }
+            } else {
+                EditorView(currentTheme = currentTheme, onThemeUpdate = { currentTheme = it })
             }
         }
     }
 }
 
-// ==========================================
-// محرر المفاتيح
-// ==========================================
 @Composable
-fun KeyEditor(currentBrush: Brush, onBrushChange: (Brush) -> Unit, currentShape: Shape, onShapeChange: (Shape) -> Unit) {
-    var innerScreen by remember { mutableIntStateOf(0) }
-
-    when (innerScreen) {
-        0 -> {
-            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                Text("ماذا تريد أن تعدل؟", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Spacer(Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Button(onClick = { innerScreen = 1 }, modifier = Modifier.weight(1f).height(60.dp)) { Text("مكتبة الألوان 🎨") }
-                    Button(onClick = { innerScreen = 2 }, modifier = Modifier.weight(1f).height(60.dp)) { Text("مكتبة الأشكال 🔷") }
-                }
-            }
-        }
-        1 -> ColorLibraryScreen(onBrushChange = { onBrushChange(it); innerScreen = 0 }, onBack = { innerScreen = 0 })
-        2 -> ShapeLibraryScreen(onShapeChange = { onShapeChange(it); innerScreen = 0 }, onBack = { innerScreen = 0 })
-    }
-}
-
-// ==========================================
-// مكتبة الألوان (المتداخلة)
-// ==========================================
-@Composable
-fun ColorLibraryScreen(onBrushChange: (Brush) -> Unit, onBack: () -> Unit) {
-    var colorMode by remember { mutableIntStateOf(0) }
-    var solidTab by remember { mutableIntStateOf(0) }
+fun EditorView(currentTheme: SavedTheme, onThemeUpdate: (SavedTheme) -> Unit) {
+    var selectedPage by remember { mutableIntStateOf(1) }
+    val pages = listOf("الخلفية", "الكتابة", "الوظيفية", "المسافة", "العلوية")
+    val icons = listOf(Icons.Default.Settings, Icons.Default.Edit, Icons.Default.Build, Icons.Default.Menu, Icons.Default.MoreVert)
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "رجوع") }
-            Text("مكتبة الألوان", fontWeight = FontWeight.Bold)
+        Box(modifier = Modifier.fillMaxWidth().weight(0.35f).background(Color(0xFFFDE8C4)).padding(4.dp)) { RealPreview(currentTheme) }
+        Divider(thickness = 2.dp)
+        Box(modifier = Modifier.fillMaxWidth().weight(0.65f)) {
+            if (selectedPage == 0) BackgroundEditor(currentTheme, onThemeUpdate) else KeyEditor(currentTheme, onThemeUpdate)
         }
-        
-        TabRow(selectedTabIndex = colorMode) {
-            Tab(selected = colorMode == 0, onClick = { colorMode = 0 }, text = { Text("أحادية") })
-            Tab(selected = colorMode == 1, onClick = { colorMode = 1 }, text = { Text("متدرجة") })
-        }
-
-        if (colorMode == 0) {
-            TabRow(selectedTabIndex = solidTab) {
-                Tab(selected = solidTab == 0, onClick = { solidTab = 0 }, text = { Text("فاتح") })
-                Tab(selected = solidTab == 1, onClick = { solidTab = 1 }, text = { Text("داكن") })
+        NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
+            pages.forEachIndexed { index, title ->
+                NavigationBarItem(selected = selectedPage == index, onClick = { selectedPage = index }, icon = { Icon(icons[index], contentDescription = title) }, label = { Text(title, fontSize = 10.sp) })
             }
-            
-            val colors = if (solidTab == 0) ColorsLight else ColorsDark
-            LazyVerticalGrid(columns = GridCells.Fixed(6), contentPadding = PaddingValues(8.dp)) {
-                items(colors) { c ->
-                    Box(Modifier.padding(4.dp).aspectRatio(1f).clip(CircleShape).background(c).border(1.dp, Color.Gray, CircleShape).clickable { onBrushChange(SolidColor(c)) })
+        }
+    }
+}
+
+@Composable
+fun BackgroundEditor(theme: SavedTheme, onUpdate: (SavedTheme) -> Unit) {
+    var innerView by remember { mutableIntStateOf(0) }
+    when (innerView) {
+        0 -> Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Text("تعديل الخلفية", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Spacer(Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { innerView = 1 }, modifier = Modifier.weight(1f).height(60.dp)) { Text("الألوان 🎨") }
+                Button(onClick = { innerView = 2 }, modifier = Modifier.weight(1f).height(60.dp)) { Text("الشفافية 🌫️") }
+            }
+        }
+        1 -> ColorLibraryView(onBgSelected = { onUpdate(theme.copy(keyBgBrush = it)); innerView = 0 }, target = "الخلفية", onBack = { innerView = 0 })
+        2 -> OpacityView(theme.keyAlpha, { onUpdate(theme.copy(keyAlpha = it)) }, onBack = { innerView = 0 })
+    }
+}
+
+@Composable
+fun KeyEditor(theme: SavedTheme, onUpdate: (SavedTheme) -> Unit) {
+    var innerView by remember { mutableIntStateOf(0) }
+    when (innerView) {
+        0 -> Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Text("تعديل الأزرار", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Spacer(Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { innerView = 1 }, modifier = Modifier.weight(1f).height(60.dp)) { Text("الألوان 🎨") }
+                Button(onClick = { innerView = 2 }, modifier = Modifier.weight(1f).height(60.dp)) { Text("الأشكال/الصور 🔷") }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { innerView = 3 }, modifier = Modifier.weight(1f).height(60.dp)) { Text("الشفافية 🌫️") }
+                Button(onClick = { innerView = 4 }, modifier = Modifier.weight(1f).height(60.dp)) { Text("نص وحدود 🔤") }
+            }
+        }
+        1 -> ColorLibraryView(onBgSelected = { onUpdate(theme.copy(keyBgBrush = it)) }, onBorderSelected = { onUpdate(theme.copy(keyBorderColor = it)) }, onTextSelected = { onUpdate(theme.copy(keyTextColor = it)) }, target = "الأزرار", onBack = { innerView = 0 })
+        2 -> ShapeLibraryView(onShapeChange = { onUpdate(theme.copy(keyShape = it)) }, onImageChange = { onUpdate(theme.copy(keyImageUri = it)) }, onBack = { innerView = 0 })
+        3 -> OpacityView(theme.keyAlpha, { onUpdate(theme.copy(keyAlpha = it)) }, onBack = { innerView = 0 })
+        4 -> TextAndBorderView(theme.keyTextSize, { onUpdate(theme.copy(keyTextSize = it)) }, theme.keyBorderWidth, { onUpdate(theme.copy(keyBorderWidth = it)) }, onBack = { innerView = 0 })
+    }
+}
+@Composable
+fun OpacityView(alpha: Float, onAlphaChange: (Float) -> Unit, onBack: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") }; Text("الشفافية") }
+        Spacer(Modifier.height(16.dp))
+        Text("درجة الشفافية: ${(alpha * 100).toInt()}%")
+        Slider(value = alpha, onValueChange = onAlphaChange, valueRange = 0f..1f)
+    }
+}
+
+@Composable
+fun TextAndBorderView(size: Float, onSizeChange: (Float) -> Unit, borderW: Dp, onBorderWChange: (Dp) -> Unit, onBack: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") }; Text("النص والحدود") }
+        Spacer(Modifier.height(16.dp))
+        Text("حجم النص: ${size.toInt()} sp")
+        Slider(value = size, onValueChange = onSizeChange, valueRange = 10f..30f)
+        Spacer(Modifier.height(16.dp))
+        Text("سماكة الحدود: ${borderW.value.toInt()} dp")
+        Slider(value = borderW.value, onValueChange = { onBorderWChange(it.dp) }, valueRange = 0f..10f)
+    }
+}
+
+@Composable
+fun ColorLibraryView(onBgSelected: (Brush) -> Unit, target: String, onBorderSelected: ((Color) -> Unit)? = null, onTextSelected: ((Color) -> Unit)? = null, onBack: () -> Unit) {
+    var mode by remember { mutableIntStateOf(0) }
+    var targetTab by remember { mutableIntStateOf(0) }
+    var isLight by remember { mutableStateOf(true) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") }; Text("مكتبة الألوان ($target)") }
+        if (target == "الأزرار") {
+            TabRow(selectedTabIndex = targetTab) {
+                Tab(selected = targetTab == 0, onClick = { targetTab = 0 }, text = { Text("الخلفية") })
+                Tab(selected = targetTab == 1, onClick = { targetTab = 1 }, text = { Text("الحدود") })
+                Tab(selected = targetTab == 2, onClick = { targetTab = 2 }, text = { Text("النص") })
+            }
+        }
+        if (targetTab == 0) {
+            TabRow(selectedTabIndex = mode) {
+                Tab(selected = mode == 0, onClick = { mode = 0 }, text = { Text("أحادية") })
+                Tab(selected = mode == 1, onClick = { mode = 1 }, text = { Text("متدرجة") })
+                Tab(selected = mode == 2, onClick = { mode = 2 }, text = { Text("مخصص") })
+            }
+            Spacer(Modifier.height(8.dp))
+            when (mode) {
+                0, 1 -> {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                        FilterChip(selected = isLight, onClick = { isLight = true }, label = { Text("فاتح") })
+                        Spacer(modifier = Modifier.width(8.dp))
+                        FilterChip(selected = !isLight, onClick = { isLight = false }, label = { Text("داكن") })
+                    }
+                    val colors = if (mode == 0) { if (isLight) SolidLight else SolidDark } else { if (isLight) GradientsLight else GradientsDark }
+                    if (mode == 0) {
+                        LazyVerticalGrid(columns = GridCells.Fixed(6), modifier = Modifier.padding(8.dp)) {
+                            items(colors as List<Color>) { c -> Box(Modifier.padding(4.dp).aspectRatio(1f).clip(CircleShape).background(c).clickable { onBgSelected(SolidColor(c)) }) }
+                        }
+                    } else {
+                        LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.padding(8.dp)) {
+                            items(colors as List<List<Color>>) { g -> Box(Modifier.padding(4.dp).aspectRatio(1.5f).clip(RoundedCornerShape(8.dp)).background(Brush.linearGradient(g)).clickable { onBgSelected(Brush.linearGradient(g)) }) }
+                        }
+                    }
+                }
+                2 -> {
+                    Text("منتقي الألوان المخصص (Hue)", modifier = Modifier.padding(16.dp))
+                    var hue by remember { mutableFloatStateOf(0f) }
+                    val c = Color.hsv(hue, 1f, 1f)
+                    Box(Modifier.fillMaxWidth().height(60.dp).background(c))
+                    Slider(value = hue, onValueChange = { hue = it }, valueRange = 0f..360f)
+                    Button(onClick = { onBgSelected(SolidColor(c)) }, modifier = Modifier.fillMaxWidth().padding(16.dp)) { Text("تطبيق اللون") }
                 }
             }
         } else {
-            LazyVerticalGrid(columns = GridCells.Fixed(3), contentPadding = PaddingValues(8.dp)) {
-                items(ColorsGradients) { colors ->
-                    Box(Modifier.padding(4.dp).aspectRatio(1.5f).clip(RoundedCornerShape(8.dp)).background(Brush.linearGradient(colors)).clickable { onBrushChange(Brush.linearGradient(colors)) })
-                }
+            val colors = SolidLight + SolidDark
+            LazyVerticalGrid(columns = GridCells.Fixed(6), modifier = Modifier.padding(8.dp)) {
+                items(colors) { c -> Box(Modifier.padding(4.dp).aspectRatio(1f).clip(CircleShape).background(c).clickable { 
+                    if (targetTab == 1) onBorderSelected?.invoke(c) else onTextSelected?.invoke(c) 
+                }) }
             }
         }
     }
 }
 
-// ==========================================
-// مكتبة الأشكال (المتداخلة)
-// ==========================================
 @Composable
-fun ShapeLibraryScreen(onShapeChange: (Shape) -> Unit, onBack: () -> Unit) {
-    var shapeCat by remember { mutableIntStateOf(0) }
-    
+fun ShapeLibraryView(onShapeChange: (Shape) -> Unit, onImageChange: (Uri) -> Unit, onBack: () -> Unit) {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? -> uri?.let { onImageChange(it) } }
     Column(modifier = Modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "رجوع") }
-            Text("مكتبة الأشكال", fontWeight = FontWeight.Bold)
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") }
+            Text("الأشكال والصور", fontWeight = FontWeight.Bold)
+            Spacer(Modifier.weight(1f))
+            Button(onClick = { launcher.launch("image/*") }) { Text("رفع صورة") }
         }
-        
-        TabRow(selectedTabIndex = shapeCat) {
-            Tab(selected = shapeCat == 0, onClick = { shapeCat = 0 }, text = { Text("مربع") })
-            Tab(selected = shapeCat == 1, onClick = { shapeCat = 1 }, text = { Text("مضلع") })
-            Tab(selected = shapeCat == 2, onClick = { shapeCat = 2 }, text = { Text("نجوم") })
-            Tab(selected = shapeCat == 3, onClick = { shapeCat = 3 }, text = { Text("تجريدي") })
-        }
-
-        val shapes = when(shapeCat) { 0 -> shapesSquare; 1 -> shapesPolygon; 2 -> shapesStar; else -> shapesAbstract }
-        
-        LazyVerticalGrid(columns = GridCells.Fixed(5), contentPadding = PaddingValues(8.dp)) {
-            items(shapes) { s ->
-                Box(Modifier.padding(8.dp).aspectRatio(1f).clip(s).background(Color.LightGray).border(1.dp, Color.Gray, s).clickable { onShapeChange(s) })
-            }
+        LazyVerticalGrid(columns = GridCells.Fixed(6), modifier = Modifier.padding(8.dp)) {
+            items(AllShapes) { s -> Box(Modifier.padding(4.dp).aspectRatio(1f).clip(s).background(Color.LightGray).clickable { onShapeChange(s) }) }
         }
     }
 }
 
-// ==========================================
-// المعاينة (نسخة طبق الأصل 100%)
-// ==========================================
 @Composable
-fun RealKeyboardPreview(keyBrush: Brush, textColor: Color, borderColor: Color, shape: Shape) {
+fun RealPreview(theme: SavedTheme) {
+    val context = LocalContext.current
+    val imageBitmap = remember(theme.keyImageUri) {
+        theme.keyImageUri?.let { uri -> context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it).asImageBitmap() } }
+    }
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        // شريط الأدوات العلوي (بالأيقونات الدقيقة)
-        Row(modifier = Modifier.fillMaxWidth().height(28.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-            listOf(
-                Icons.Default.MoreVert, 
-                Icons.Default.Settings, 
-                Icons.Default.ArrowBack, 
-                Icons.Default.ArrowForward, 
-                Icons.Default.Edit, 
-                Icons.Default.Share, 
-                Icons.Default.Face, 
-                Icons.Default.Settings
-            ).forEach {
-                Icon(it, null, tint = textColor, modifier = Modifier.size(14.dp))
-            }
-        }
-        // شريط الاقتراحات
-        Row(modifier = Modifier.fillMaxWidth().height(20.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-            Text("شوف", color = textColor, fontSize = 12.sp)
-            Text("اشتي", color = textColor, fontSize = 12.sp)
-            Text("طيب", color = textColor, fontSize = 12.sp)
-        }
-        // الأرقام العربية
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            listOf("١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "٠").forEach {
-                PK(it, keyBrush, textColor, borderColor, shape, 14f, Modifier.weight(1f))
-            }
-        }
-        // أزرار التحديد
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            listOf("تحديد", "مسح", "لصق", "نسخ").forEach { PK(it, keyBrush, textColor, borderColor, shape, 12f, Modifier.weight(1f)) }
-        }
-        // صفوف الحروف
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج").forEach { PK(it, keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1f)) }
+            listOf("١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "٠").forEach { PK(it, theme, imageBitmap, Modifier.weight(1f)) }
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").forEach { PK(it, keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1f)) }
+            listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج").forEach { PK(it, theme, imageBitmap, Modifier.weight(1f)) }
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            listOf("ئ", "ء", "ؤ", "ر", "لا", "ى", "ة", "و", "ز", "ظ", "د").forEach { PK(it, keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1f)) }
-            PK("⌫", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1.5f), Icons.Default.ArrowBack)
+            listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").forEach { PK(it, theme, imageBitmap, Modifier.weight(1f)) }
         }
-        // الصف السفلي
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            listOf("ئ", "ء", "ؤ", "ر", "لا", "ى", "ة", "و", "ز", "ظ", "د").forEach { PK(it, theme, imageBitmap, Modifier.weight(1f)) }
+        }
         Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            PK("١٢٣", keyBrush, textColor, borderColor, shape, 14f, Modifier.weight(1f))
-            PK("😊", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1f))
-            PK("العربية", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(4f))
-            PK(".", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1f))
-            PK("↵", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1f), Icons.Default.Check)
+            PK("١٢٣", theme, imageBitmap, Modifier.weight(1f))
+            PK("مسافة", theme, imageBitmap, Modifier.weight(4f))
+            PK("↵", theme, imageBitmap, Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-fun PK(text: String, brush: Brush, fg: Color, border: Color, shape: Shape, size: Float, mod: Modifier, icon: ImageVector? = null) {
-    Box(modifier = mod.fillMaxHeight().clip(shape).background(brush).border(1.dp, border, shape), contentAlignment = Alignment.Center) {
-        if (icon != null) Icon(icon, null, tint = fg, modifier = Modifier.size(size.dp))
-        else Text(text, color = fg, fontSize = size.sp, textAlign = TextAlign.Center, maxLines = 1)
-    }
-}
-
-@Composable
-fun BackgroundEditor(bgBrush: Brush, onBgChange: (Brush) -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("الخلفية", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-        Spacer(modifier = Modifier.height(16.dp))
-        Box(modifier = Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(8.dp)).background(bgBrush).border(1.dp, Color.Gray, RoundedCornerShape(8.dp)))
-        Spacer(modifier = Modifier.height(16.dp))
-        OutlinedButton(onClick = { /* TODO */ }, modifier = Modifier.fillMaxWidth()) { Text("رفع صورة خلفية") }
+fun PK(text: String, theme: SavedTheme, img: androidx.compose.ui.graphics.ImageBitmap?, mod: Modifier) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    Box(
+        modifier = mod.fillMaxHeight().padding(if (pressed) 2.dp else 0.dp).alpha(theme.keyAlpha).clip(theme.keyShape).background(theme.keyBgBrush).border(theme.keyBorderWidth, theme.keyBorderColor, theme.keyShape).clickable(interactionSource = interaction, indication = null) {},
+        contentAlignment = Alignment.Center
+    ) {
+        if (img != null) {
+            Image(bitmap = img, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().clip(theme.keyShape))
+        } else {
+            Text(text, color = theme.keyTextColor, fontSize = theme.keyTextSize.sp, textAlign = TextAlign.Center, maxLines = 1)
+        }
     }
 }
