@@ -284,12 +284,12 @@ fun RealKeyboardPreview(keyBrush: Brush, textColor: Color, borderColor: Color, s
         // شريط الأدوات العلوي (بالأيقونات الدقيقة)
         Row(modifier = Modifier.fillMaxWidth().height(28.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
             listOf(
-                Icons.Default.MoreHoriz, 
-                Icons.Default.Language, 
-                Icons.Default.Undo, 
-                Icons.Default.Redo, 
+                Icons.Default.MoreVert, 
+                Icons.Default.Settings, 
+                Icons.AutoMirrored.Filled.ArrowBack, 
+                Icons.AutoMirrored.Filled.ArrowForward, 
                 Icons.Default.Edit, 
-                Icons.Default.ContentCopy, 
+                Icons.Default.Share, 
                 Icons.Default.Face, 
                 Icons.Default.Settings
             ).forEach {
@@ -321,7 +321,7 @@ fun RealKeyboardPreview(keyBrush: Brush, textColor: Color, borderColor: Color, s
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             listOf("ئ", "ء", "ؤ", "ر", "لا", "ى", "ة", "و", "ز", "ظ", "د").forEach { PK(it, keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1f)) }
-            PK("⌫", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1.5f), Icons.Default.Backspace)
+            PK("⌫", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1.5f), Icons.AutoMirrored.Filled.ArrowBack)
         }
         // الصف السفلي
         Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -329,7 +329,7 @@ fun RealKeyboardPreview(keyBrush: Brush, textColor: Color, borderColor: Color, s
             PK("😊", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1f))
             PK("العربية", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(4f))
             PK(".", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1f))
-            PK("↵", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1f), Icons.Default.KeyboardReturn)
+            PK("↵", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1f), Icons.Default.Check)
         }
     }
 }
