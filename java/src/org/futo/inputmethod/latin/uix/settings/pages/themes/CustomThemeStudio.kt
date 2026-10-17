@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,7 +23,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// ألوان المعاينة الافتراضية
 val DefaultBgColor = Color(0xFFFDE8C4)
 val DefaultKeyColor = Color(0xFFE8F0D8)
 val DefaultKeyTextColor = Color(0xFF1A1A1A)
@@ -31,7 +31,6 @@ val DefaultBorderColor = Color(0xFF8BA87E)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomThemeStudioScreen(onBack: () -> Unit) {
-    // حالات التصميم الأساسية
     var keyboardBgColor by remember { mutableStateOf(DefaultBgColor) }
     var bgOpacity by remember { mutableStateOf(1f) }
     var keyColor by remember { mutableStateOf(DefaultKeyColor) }
@@ -39,19 +38,18 @@ fun CustomThemeStudioScreen(onBack: () -> Unit) {
     var borderColor by remember { mutableStateOf(DefaultBorderColor) }
     var textSize by remember { mutableStateOf(16f) }
 
-    // حالة التنقل (8 صفحات)
     var selectedPage by remember { mutableIntStateOf(0) }
 
-    // تعريف صفحات التحرير الثمانية
+    // استخدمنا أيقونات أساسية فقط لتجنب أخطاء البناء
     val editorPages = listOf(
-        EditorPage("الخلفية", Icons.Default.Wallpaper),
-        EditorPage("الكتابة", Icons.Default.Keyboard),
-        EditorPage("الوظيفية", Icons.Default.Settings),
-        EditorPage("أدوات", Icons.Default.Edit),
-        EditorPage("المسافة", Icons.Default.SpaceBar),
-        EditorPage("الأرقام", Icons.Default.Dialpad),
-        EditorPage("الخطوط", Icons.Default.TextFields),
-        EditorPage("العلوية", Icons.Default.Menu)
+        EditorPage("الخلفية", Icons.Default.Settings),
+        EditorPage("الكتابة", Icons.Default.Edit),
+        EditorPage("الوظيفية", Icons.Default.Build),
+        EditorPage("أدوات", Icons.Default.Create),
+        EditorPage("المسافة", Icons.Default.Menu),
+        EditorPage("الأرقام", Icons.Default.List),
+        EditorPage("الخطوط", Icons.Default.Info),
+        EditorPage("العلوية", Icons.Default.MoreVert)
     )
 
     Scaffold(
@@ -62,8 +60,8 @@ fun CustomThemeStudioScreen(onBack: () -> Unit) {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: Save */ }) { Icon(Icons.Default.Save, "حفظ وتطبيق") }
-                    IconButton(onClick = { /* TODO: Export */ }) { Icon(Icons.Default.Share, "تصدير ZIP") }
+                    IconButton(onClick = { /* TODO */ }) { Icon(Icons.Default.Check, "حفظ") }
+                    IconButton(onClick = { /* TODO */ }) { Icon(Icons.Default.Share, "تصدير") }
                 }
             )
         },
@@ -71,7 +69,6 @@ fun CustomThemeStudioScreen(onBack: () -> Unit) {
             Column(
                 modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(vertical = 4.dp)
             ) {
-                // النقاط الثمانية
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                     editorPages.forEachIndexed { index, _ ->
                         val color = if (selectedPage == index) MaterialTheme.colorScheme.primary else Color.LightGray
@@ -80,7 +77,6 @@ fun CustomThemeStudioScreen(onBack: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                // شريط الأيقونات القابل للسحب
                 LazyRow(contentPadding = PaddingValues(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     itemsIndexed(editorPages) { index, page ->
                         val isSelected = selectedPage == index
@@ -103,10 +99,9 @@ fun CustomThemeStudioScreen(onBack: () -> Unit) {
         }
     ) { paddingValues ->
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            // المعاينة المباشرة
             Box(
                 modifier = Modifier.fillMaxWidth().weight(0.45f)
-                    .background(keyboardBgColor.copy(alpha = bgOpacity)) // تطبيق الشفافية هنا
+                    .background(keyboardBgColor.copy(alpha = bgOpacity))
                     .padding(8.dp)
             ) {
                 KeyboardPreview(keyColor, keyTextColor, borderColor, textSize)
@@ -114,13 +109,12 @@ fun CustomThemeStudioScreen(onBack: () -> Unit) {
 
             Divider(thickness = 2.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
-            // منطقة الأدوات
             Box(modifier = Modifier.fillMaxWidth().weight(0.55f).background(MaterialTheme.colorScheme.surface)) {
                 when (selectedPage) {
                     0 -> BackgroundEditor(keyboardBgColor, { keyboardBgColor = it }, bgOpacity, { bgOpacity = it })
                     1 -> ColorAndShapeEditor("أزرار الكتابة", keyColor, { keyColor = it }, borderColor)
                     2 -> ColorAndShapeEditor("الأزرار الوظيفية", keyColor, { keyColor = it }, borderColor)
-                    3 -> ColorAndShapeEditor("أدوات التحرير (نسخ/لصق)", keyColor, { keyColor = it }, borderColor)
+                    3 -> ColorAndShapeEditor("أدوات التحرير", keyColor, { keyColor = it }, borderColor)
                     4 -> ColorAndShapeEditor("زر المسافة", keyColor, { keyColor = it }, borderColor)
                     5 -> ColorAndShapeEditor("الأرقام", keyColor, { keyColor = it }, borderColor)
                     6 -> FontEditor(textSize, { textSize = it }, keyTextColor, { keyTextColor = it })
@@ -133,17 +127,16 @@ fun CustomThemeStudioScreen(onBack: () -> Unit) {
 
 data class EditorPage(val title: String, val icon: ImageVector)
 
-// ... [بقية دوال المعاينة KeyboardPreview و PreviewKey تبقى كما هي] ...
 @Composable
 fun KeyboardPreview(keyColor: Color, textColor: Color, borderColor: Color, textSize: Float) {
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(modifier = Modifier.fillMaxWidth().height(30.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.MoreHoriz, null, tint = textColor, modifier = Modifier.size(16.dp))
-            Icon(Icons.Default.Language, null, tint = textColor, modifier = Modifier.size(16.dp))
-            Icon(Icons.Default.Undo, null, tint = textColor, modifier = Modifier.size(16.dp))
-            Icon(Icons.Default.Redo, null, tint = textColor, modifier = Modifier.size(16.dp))
+            Icon(Icons.Default.MoreVert, null, tint = textColor, modifier = Modifier.size(16.dp))
+            Icon(Icons.Default.Search, null, tint = textColor, modifier = Modifier.size(16.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = textColor, modifier = Modifier.size(16.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = textColor, modifier = Modifier.size(16.dp))
             Icon(Icons.Default.Edit, null, tint = textColor, modifier = Modifier.size(16.dp))
-            Icon(Icons.Default.ContentCopy, null, tint = textColor, modifier = Modifier.size(16.dp))
+            Icon(Icons.Default.Share, null, tint = textColor, modifier = Modifier.size(16.dp))
             Icon(Icons.Default.Face, null, tint = textColor, modifier = Modifier.size(16.dp))
             Icon(Icons.Default.Settings, null, tint = textColor, modifier = Modifier.size(16.dp))
         }
@@ -168,14 +161,14 @@ fun KeyboardPreview(keyColor: Color, textColor: Color, borderColor: Color, textS
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             row3.forEach { PreviewKey(it, keyColor, textColor, borderColor, modifier = Modifier.weight(1f), textSize) }
-            PreviewKey("⌫", keyColor, textColor, borderColor, modifier = Modifier.weight(1.5f), textSize, icon = Icons.Default.Backspace)
+            PreviewKey("⌫", keyColor, textColor, borderColor, modifier = Modifier.weight(1.5f), textSize, icon = Icons.AutoMirrored.Filled.ArrowBack)
         }
         Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             PreviewKey("123", keyColor, textColor, borderColor, modifier = Modifier.weight(1f), textSize)
             PreviewKey("😊", keyColor, textColor, borderColor, modifier = Modifier.weight(1f), textSize)
             PreviewKey("العربية", keyColor, textColor, borderColor, modifier = Modifier.weight(4f), textSize)
             PreviewKey("،", keyColor, textColor, borderColor, modifier = Modifier.weight(1f), textSize)
-            PreviewKey("↵", keyColor, textColor, borderColor, modifier = Modifier.weight(1f), textSize, icon = Icons.Default.KeyboardReturn)
+            PreviewKey("↵", keyColor, textColor, borderColor, modifier = Modifier.weight(1f), textSize, icon = Icons.Default.Check)
         }
     }
 }
@@ -187,10 +180,6 @@ fun PreviewKey(label: String, bgColor: Color, textColor: Color, borderColor: Col
         else Text(text = label, color = textColor, fontSize = textSize.sp, textAlign = TextAlign.Center)
     }
 }
-
-// ==========================================
-// شاشات التحرير المتقدمة (الخيارات الثمانية)
-// ==========================================
 
 @Composable
 fun BackgroundEditor(bgColor: Color, onBgColorChange: (Color) -> Unit, opacity: Float, onOpacityChange: (Float) -> Unit) {
@@ -205,8 +194,8 @@ fun BackgroundEditor(bgColor: Color, onBgColorChange: (Color) -> Unit, opacity: 
         Slider(value = opacity, onValueChange = onOpacityChange, valueRange = 0f..1f)
         
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedButton(onClick = { /* TODO: Pick Background Image */ }, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.Image, contentDescription = null)
+        OutlinedButton(onClick = { /* TODO */ }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Add, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text("رفع صورة خلفية للكيبورد")
         }
@@ -227,8 +216,8 @@ fun ColorAndShapeEditor(title: String, currentColor: Color, onColorChange: (Colo
         Box(modifier = Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(8.dp)).background(borderColor).border(1.dp, Color.Gray, RoundedCornerShape(8.dp)))
         
         Spacer(modifier = Modifier.height(16.dp))
-        OutlinedButton(onClick = { /* TODO: Pick Key Shape Image */ }, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
+        OutlinedButton(onClick = { /* TODO */ }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Add, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text("تغيير شكل الزر (رفع صورة PNG)")
         }
@@ -249,8 +238,8 @@ fun FontEditor(textSize: Float, onTextSizeChange: (Float) -> Unit, textColor: Co
         Box(modifier = Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(8.dp)).background(textColor).border(1.dp, Color.Gray, RoundedCornerShape(8.dp)))
         
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { /* TODO: Pick Font */ }, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.FontDownload, contentDescription = null)
+        Button(onClick = { /* TODO */ }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Edit, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text("اختيار ملف خط (.ttf)")
         }
@@ -262,15 +251,15 @@ fun TopToolbarEditor(textColor: Color, onTextColorChange: (Color) -> Unit) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("أدوات التحرير العلوية", fontWeight = FontWeight.Bold, fontSize = 18.sp)
         Spacer(modifier = Modifier.height(16.dp))
-        Text("تعديل أيقونات (النسخ، اللصق، الإعدادات، تبديل اللغة) الموجودة في الشريط العلوي للكيبورد.", fontSize = 14.sp, color = Color.Gray)
+        Text("تعديل أيقونات (النسخ، اللصق، الإعدادات) الموجودة في الشريط العلوي للكيبورد.", fontSize = 14.sp, color = Color.Gray)
         
         Spacer(modifier = Modifier.height(16.dp))
         Text("لون الأيقونات:", fontSize = 14.sp)
         Box(modifier = Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(8.dp)).background(textColor).border(1.dp, Color.Gray, RoundedCornerShape(8.dp)))
         
         Spacer(modifier = Modifier.height(16.dp))
-        OutlinedButton(onClick = { /* TODO: Change Top Icons */ }, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.TouchApp, contentDescription = null)
+        OutlinedButton(onClick = { /* TODO */ }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Edit, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text("تغيير أيقونات الشريط العلوي")
         }
