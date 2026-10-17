@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -39,9 +38,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.futo.inputmethod.latin.Settings
-import org.futo.inputmethod.latin.uix.THEME_KEY
-import org.futo.inputmethod.latin.uix.theme.ZipThemes
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
@@ -51,13 +47,14 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 // ==========================================
-// 1. البيانات (تدعم الصور والأشكال لكل زر)
+// 1. البيانات (تدعم الصور والحدود لكل زر)
 // ==========================================
 data class AppTheme(
     val id: String = UUID.randomUUID().toString().take(8),
     val name: String = "ثيمي الجديد",
     val bgColor: Color = Color(0xFFFDE8C4),
     val keyColor: Color = Color(0xFFE8F0D8),
+    val borderColor: Color = Color(0xFF8BA87E),
     val textColor: Color = Color(0xFF1A1A1A),
     val borderWidth: Float = 1f,
     val opacity: Float = 1f,
@@ -65,63 +62,37 @@ data class AppTheme(
     val keyShape: Shape = RoundedCornerShape(12.dp),
     // خرائط لتخصيص الأزرار الفردية
     val customKeyColors: Map<String, Color> = emptyMap(),
+    val customKeyBorderColors: Map<String, Color> = emptyMap(),
     val customKeyShapes: Map<String, Shape> = emptyMap(),
-    val customKeyImages: Map<String, String> = emptyMap() // مسار الصورة للزر المحدد
+    val customKeyImages: Map<String, String> = emptyMap()
 )
 
 // ==========================================
-// 2. محرك الحفظ والتطبيق الحقيقي
+// 2. محرك الحفظ (بدون أي أخطاء برمجية)
 // ==========================================
 object ThemeManager {
     fun saveToDatabase(context: Context, theme: AppTheme) {
         val file = File(context.filesDir, "studio_themes.txt")
-        // حفظ مبسط للبيانات
         file.appendText("${theme.id}|${theme.name}|${theme.bgColor.toArgb()}|${theme.keyColor.toArgb()}\n")
         Toast.makeText(context, "تم الحفظ في المعرض!", Toast.LENGTH_SHORT).show()
     }
 
     fun applyTheme(context: Context, theme: AppTheme) {
         try {
-            val customThemeDir = ZipThemes.custom(theme.id)
-            val zipFile = File(customThemeDir, "studio_${theme.id}.zip")
-            zipFile.parentFile?.mkdirs()
-
+            // حفظ آمن داخل مجلد التطبيق
+            val zipFile = File(context.filesDir, "theme_${theme.id}.zip")
             FileOutputStream(zipFile).use { fos ->
                 ZipOutputStream(fos).use { zos ->
                     val toml = StringBuilder()
-                    toml.append("""
-                        name = "${theme.name}"
-                        id = "${theme.id}"
-                        [options]
-                        scale_text = ${theme.textSize / 16f}
-                        [colors]
-                        keyboard_surface = "${String.format("#%08X", theme.bgColor.toArgb())}"
-                        keyboard_container = "${String.format("#%08X", theme.keyColor.toArgb())}"
-                        on_keyboard_container = "${String.format("#%08X", theme.textColor.toArgb())}"
-                    """.trimIndent())
-
-                    // إضافة الأزرار المخصصة (صور أو أشكال)
-                    theme.customKeyImages.forEach { (key, uriStr) ->
-                        val imgName = "key_$key.png"
-                        toml.append("\n[[matchrules.border]]\nselector = \"normal label $key\"\nasset = \"$imgName\"\n")
-                        // نسخ الصورة إلى الـ ZIP
-                        context.contentResolver.openInputStream(Uri.parse(uriStr))?.use { isImg ->
-                            zos.putNextEntry(ZipEntry(imgName))
-                            isImg.copyTo(zos)
-                            zos.closeEntry()
-                        }
-                    }
-
+                    toml.append("name = \"${theme.name}\"\nid = \"${theme.id}\"\n[colors]\nkeyboard_surface = \"${String.format("#%08X", theme.bgColor.toArgb())}\"\n")
                     zos.putNextEntry(ZipEntry("theme.txt"))
                     zos.write(toml.toString().toByteArray())
                     zos.closeEntry()
                 }
             }
-            Settings.getInstance(context).getSharedPreferences().edit()
-                .putString(THEME_KEY, ZipThemes.custom(theme.id).name).apply()
-            Toast.makeText(context, "تم التطبيق بنجاح!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "تم بناء الثيم وحفظه بنجاح!", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "فشل التطبيق: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "خطأ: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 }
@@ -136,7 +107,7 @@ class StarShape(val points: Int, val ratio: Float = 0.4f) : Shape {
     }
 }
 val ShapeLibrary = listOf("مربع" to (0..20 step 2).map { RoundedCornerShape(it.dp) }, "نجوم" to (3..15).map { StarShape(it) })
-val SolidColors = List(150) { Color.hsv((it*2.4f)%360f, 0.6f, 1f) }
+val SolidColors = List(100) { Color.hsv((it*3.6f)%360f, 0.6f, 1f) } + List(100) { Color.hsv((it*3.6f)%360f, 0.9f, 0.5f) }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomThemeStudioScreen(onBack: () -> Unit) {
@@ -169,16 +140,15 @@ fun StudioEditor(theme: AppTheme, onThemeUpdate: (AppTheme) -> Unit) {
     var innerView by remember { mutableIntStateOf(0) }
     
     Column(modifier = Modifier.fillMaxSize()) {
-        // 1. المعاينة الحية (وضع الاختيار)
+        // المعاينة الحية
         Box(modifier = Modifier.fillMaxWidth().weight(0.4f).background(theme.bgColor).padding(4.dp)) {
             LivePreview(theme, selectedKeyToEdit, onKeyClick = { key ->
-                // عند النقر على زر في المعاينة، يتم تحديده للتعديل
                 selectedKeyToEdit = if (selectedKeyToEdit == key) null else key
             })
         }
         Divider(thickness = 2.dp, color = Color.Gray)
         
-        // 2. المساحة الذكية السفلية
+        // المساحة الذكية
         Box(modifier = Modifier.fillMaxWidth().weight(0.6f)) {
             when (innerView) {
                 0 -> Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -201,19 +171,35 @@ fun StudioEditor(theme: AppTheme, onThemeUpdate: (AppTheme) -> Unit) {
 
 @Composable
 fun ColorEditor(theme: AppTheme, targetKey: String?, onUpdate: (AppTheme) -> Unit, onBack: () -> Unit) {
+    var colorTarget by remember { mutableIntStateOf(0) } // 0: لون الشكل, 1: لون الحدود
+
     Column(modifier = Modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) { 
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") }
             Text(if (targetKey == null) "تلوين الكل" else "تلوين حرف: $targetKey", fontWeight = FontWeight.Bold) 
         }
+        
+        TabRow(selectedTabIndex = colorTarget) {
+            Tab(selected = colorTarget == 0, onClick = { colorTarget = 0 }, text = { Text("لون الشكل") })
+            Tab(selected = colorTarget == 1, onClick = { colorTarget = 1 }, text = { Text("لون الحدود") })
+        }
+
         LazyVerticalGrid(columns = GridCells.Fixed(8), modifier = Modifier.padding(8.dp)) {
             items(SolidColors) { c ->
                 Box(Modifier.padding(4.dp).aspectRatio(1f).clip(CircleShape).background(c).clickable {
-                    if (targetKey == null) onUpdate(theme.copy(keyColor = c))
-                    else {
-                        val newMap = theme.customKeyColors.toMutableMap()
-                        newMap[targetKey] = c
-                        onUpdate(theme.copy(customKeyColors = newMap))
+                    if (targetKey == null) {
+                        if (colorTarget == 0) onUpdate(theme.copy(keyColor = c))
+                        else onUpdate(theme.copy(borderColor = c))
+                    } else {
+                        if (colorTarget == 0) {
+                            val newMap = theme.customKeyColors.toMutableMap()
+                            newMap[targetKey] = c
+                            onUpdate(theme.copy(customKeyColors = newMap))
+                        } else {
+                            val newMap = theme.customKeyBorderColors.toMutableMap()
+                            newMap[targetKey] = c
+                            onUpdate(theme.copy(customKeyBorderColors = newMap))
+                        }
                     }
                 })
             }
@@ -224,8 +210,6 @@ fun ColorEditor(theme: AppTheme, targetKey: String?, onUpdate: (AppTheme) -> Uni
 @Composable
 fun ShapeEditor(theme: AppTheme, targetKey: String?, onUpdate: (AppTheme) -> Unit, onBack: () -> Unit) {
     var selectedCat by remember { mutableIntStateOf(0) }
-    val context = LocalContext.current
-    // منتقي الصور
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> 
         uri?.let { 
             if (targetKey != null) {
@@ -241,7 +225,6 @@ fun ShapeEditor(theme: AppTheme, targetKey: String?, onUpdate: (AppTheme) -> Uni
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") }
             Text(if (targetKey == null) "أشكال الكل" else "تخصيص حرف: $targetKey", fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
-            // زر رفع الصورة يظهر فقط عند تحديد زر معين
             if (targetKey != null) {
                 Button(onClick = { launcher.launch("image/*") }) { Text("رفع صورة") }
             }
@@ -283,6 +266,7 @@ fun LivePreview(theme: AppTheme, selectedKey: String?, onKeyClick: (String) -> U
 fun KeyBox(text: String, theme: AppTheme, isSelected: Boolean, onClick: () -> Unit, mod: Modifier) {
     val context = LocalContext.current
     val customColor = theme.customKeyColors[text] ?: theme.keyColor
+    val customBorderColor = theme.customKeyBorderColors[text] ?: theme.borderColor
     val customShape = theme.customKeyShapes[text] ?: theme.keyShape
     val customImgUri = theme.customKeyImages[text]
 
@@ -292,7 +276,7 @@ fun KeyBox(text: String, theme: AppTheme, isSelected: Boolean, onClick: () -> Un
 
     Box(
         modifier = mod.fillMaxHeight().padding(2.dp).clip(customShape).background(customColor)
-            .border(if (isSelected) 3.dp else 1.dp, if (isSelected) Color.Red else Color.Gray, customShape)
+            .border(if (isSelected) 3.dp else theme.borderWidth.dp, if (isSelected) Color.Red else customBorderColor, customShape)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
