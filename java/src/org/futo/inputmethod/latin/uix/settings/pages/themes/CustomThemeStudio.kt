@@ -136,7 +136,7 @@ fun CustomThemeStudioScreen(onBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("استوديو التصميم", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "رجوع") } },
                 actions = {
                     IconButton(onClick = { /* TODO */ }) { Icon(Icons.Default.Check, "حفظ وتطبيق", tint = Color(0xFF4CAF50)) }
                     IconButton(onClick = { /* TODO */ }) { Icon(Icons.Default.Share, "تصدير") }
@@ -214,7 +214,7 @@ fun ColorLibraryScreen(onBrushChange: (Brush) -> Unit, onBack: () -> Unit) {
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") }
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "رجوع") }
             Text("مكتبة الألوان", fontWeight = FontWeight.Bold)
         }
         
@@ -254,7 +254,7 @@ fun ShapeLibraryScreen(onShapeChange: (Shape) -> Unit, onBack: () -> Unit) {
     
     Column(modifier = Modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") }
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "رجوع") }
             Text("مكتبة الأشكال", fontWeight = FontWeight.Bold)
         }
         
@@ -286,8 +286,8 @@ fun RealKeyboardPreview(keyBrush: Brush, textColor: Color, borderColor: Color, s
             listOf(
                 Icons.Default.MoreVert, 
                 Icons.Default.Settings, 
-                Icons.AutoMirrored.Filled.ArrowBack, 
-                Icons.AutoMirrored.Filled.ArrowForward, 
+                Icons.Default.ArrowBack, 
+                Icons.Default.ArrowForward, 
                 Icons.Default.Edit, 
                 Icons.Default.Share, 
                 Icons.Default.Face, 
@@ -321,7 +321,7 @@ fun RealKeyboardPreview(keyBrush: Brush, textColor: Color, borderColor: Color, s
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             listOf("ئ", "ء", "ؤ", "ر", "لا", "ى", "ة", "و", "ز", "ظ", "د").forEach { PK(it, keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1f)) }
-            PK("⌫", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1.5f), Icons.AutoMirrored.Filled.ArrowBack)
+            PK("⌫", keyBrush, textColor, borderColor, shape, 16f, Modifier.weight(1.5f), Icons.Default.ArrowBack)
         }
         // الصف السفلي
         Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
