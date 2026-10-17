@@ -66,7 +66,6 @@ import org.futo.inputmethod.latin.uix.settings.pages.pdict.PersonalDictionaryLan
 import org.futo.inputmethod.latin.uix.settings.pages.pdict.WordPopupDialogF
 import org.futo.inputmethod.latin.uix.settings.pages.themes.CustomThemeDialog
 import org.futo.inputmethod.latin.uix.settings.pages.themes.CustomThemeScreen
-import org.futo.inputmethod.latin.uix.settings.pages.themes.CustomThemeStudioScreen
 import org.futo.inputmethod.latin.uix.settings.pages.themes.DeleteCustomThemeDialog
 import org.futo.inputmethod.latin.uix.settings.pages.themes.ThemeScreen
 import org.futo.inputmethod.latin.uix.settings.pages.fonts.FontScreen
@@ -153,7 +152,6 @@ fun SettingsNavigator(
                 composable<Route.DevLayoutEdit> { DevLayoutEdit(nav, it.i) }
 
                 composable<Route.CustomTheme> { CustomThemeScreen(it.uri, nav) }
-                composable("theme_studio") { CustomThemeStudioScreen(onBack = { nav.navigateUp() }) }
                 dialog<Route.DeleteTheme> { DeleteCustomThemeDialog(it.name, nav) }
 
                 composable<Route.ThirdPartyInfo> { ProjectInfoView(it.idx, nav) }
