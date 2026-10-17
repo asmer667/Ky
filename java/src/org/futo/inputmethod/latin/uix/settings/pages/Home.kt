@@ -111,7 +111,6 @@ val HomeScreenLite = UserSettingsMenu(
             navigateTo = "themes",
             icon = R.drawable.themes
         ),
-
         userSettingNavigationItem(
             title = R.string.theme_studio_title,
             style = NavigationItemStyle.HomeTertiary,
