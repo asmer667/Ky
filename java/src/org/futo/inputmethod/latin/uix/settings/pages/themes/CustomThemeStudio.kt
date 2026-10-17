@@ -43,11 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.UUID
 
-// ==========================================
-// 1. نماذج البيانات (Data Models)
-// ==========================================
 data class SavedTheme(
-    val id: String = UUID.randomUUID().toString().take(8), // Auto-ID
+    val id: String = UUID.randomUUID().toString().take(8),
     val name: String,
     val keyBgBrush: Brush,
     val keyBorderColor: Color,
@@ -59,9 +56,6 @@ data class SavedTheme(
     val keyTextSize: Float
 )
 
-// ==========================================
-// 2. مكتبات الألوان والأشكال
-// ==========================================
 val SolidLight = listOf(Color.White, Color(0xFFF5F5F5), Color(0xFFFFCDD2), Color(0xFFFFE082), Color(0xFFC8E6C9), Color(0xFFBBDEFB), Color(0xFFE1BEE7), Color(0xFFCFD8DC))
 val SolidDark = listOf(Color.Black, Color(0xFF212121), Color(0xFFB71C1C), Color(0xFFF57F17), Color(0xFF1B5E20), Color(0xFF0D47A1), Color(0xFF4A148C), Color(0xFF263238))
 val GradientsLight = listOf(listOf(Color(0xFFFF9A9E), Color(0xFFFECFEF)), listOf(Color(0xFFA18CD1), Color(0xFFFBC2EB)), listOf(Color(0xFF84FAB0), Color(0xFF8FD3F4)))
@@ -89,20 +83,13 @@ val AllShapes = mutableListOf<Shape>().apply {
     add(CircleShape)
     for (i in 1..50) { add(RoundedCornerShape(topStart = (i*2).dp, bottomEnd = (i*3).dp)) }
 }
-
-// ==========================================
-// 3. الشاشة الرئيسية (تتحكم في التنقل بين الاستوديو والمعرض)
-// ==========================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomThemeStudioScreen(onBack: () -> Unit) {
     val context = LocalContext.current
-    
-    // حالة المعرض
     var savedThemes by remember { mutableStateOf(listOf<SavedTheme>()) }
     var isGalleryView by remember { mutableStateOf(false) }
 
-    // حالة الثيم الحالي
     var currentTheme by remember {
         mutableStateOf(
             SavedTheme(
@@ -134,21 +121,9 @@ fun CustomThemeStudioScreen(onBack: () -> Unit) {
                 },
                 actions = {
                     if (!isGalleryView) {
-                        // زر المعرض
-                        IconButton(onClick = { isGalleryView = true }) { 
-                            Icon(Icons.Default.List, "معرض الثيمات", tint = MaterialTheme.colorScheme.primary) 
-                        }
-                        // زر الحفظ
-                        IconButton(onClick = { 
-                            savedThemes = savedThemes + currentTheme
-                            Toast.makeText(context, "تم حفظ الثيم (ID: ${currentTheme.id})", Toast.LENGTH_SHORT).show() 
-                        }) { 
-                            Icon(Icons.Default.Check, "حفظ", tint = Color(0xFF4CAF50)) 
-                        }
-                        // زر التصدير
-                        IconButton(onClick = { createFileLauncher.launch("${currentTheme.name}.zip") }) { 
-                            Icon(Icons.Default.Share, "تصدير ZIP") 
-                        }
+                        IconButton(onClick = { isGalleryView = true }) { Icon(Icons.Default.List, "معرض الثيمات", tint = MaterialTheme.colorScheme.primary) }
+                        IconButton(onClick = { savedThemes = savedThemes + currentTheme; Toast.makeText(context, "تم حفظ الثيم (ID: ${currentTheme.id})", Toast.LENGTH_SHORT).show() }) { Icon(Icons.Default.Check, "حفظ", tint = Color(0xFF4CAF50)) }
+                        IconButton(onClick = { createFileLauncher.launch("${currentTheme.name}.zip") }) { Icon(Icons.Default.Share, "تصدير ZIP") }
                     }
                 }
             )
@@ -156,20 +131,14 @@ fun CustomThemeStudioScreen(onBack: () -> Unit) {
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (isGalleryView) {
-                // عرض المعرض
                 if (savedThemes.isEmpty()) {
-                    Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                        Text("لا توجد ثيمات محفوظة بعد.", color = Color.Gray)
-                    }
+                    Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { Text("لا توجد ثيمات محفوظة بعد.", color = Color.Gray) }
                 } else {
                     LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         items(savedThemes) { theme ->
                             Card(elevation = CardDefaults.cardElevation(4.dp)) {
                                 Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                    // بطاقة مصغرة للمعاينة
-                                    Box(modifier = Modifier.fillMaxWidth().height(80.dp).clip(theme.keyShape).background(theme.keyBgBrush).border(theme.keyBorderWidth, theme.keyBorderColor, theme.keyShape), contentAlignment = Alignment.Center) {
-                                        Text("Aa", color = theme.keyTextColor, fontSize = theme.keyTextSize.sp, fontWeight = FontWeight.Bold)
-                                    }
+                                    Box(modifier = Modifier.fillMaxWidth().height(80.dp).clip(theme.keyShape).background(theme.keyBgBrush).border(theme.keyBorderWidth, theme.keyBorderColor, theme.keyShape), contentAlignment = Alignment.Center) { Text("Aa", color = theme.keyTextColor, fontSize = theme.keyTextSize.sp, fontWeight = FontWeight.Bold) }
                                     Spacer(Modifier.height(8.dp))
                                     Text(theme.name, fontWeight = FontWeight.Bold)
                                     Text("ID: ${theme.id}", fontSize = 12.sp, color = Color.Gray)
@@ -184,19 +153,12 @@ fun CustomThemeStudioScreen(onBack: () -> Unit) {
                     }
                 }
             } else {
-                // عرض الاستوديو
-                EditorView(
-                    currentTheme = currentTheme,
-                    onThemeUpdate = { currentTheme = it }
-                )
+                EditorView(currentTheme = currentTheme, onThemeUpdate = { currentTheme = it })
             }
         }
     }
 }
 
-// ==========================================
-// 4. واجهة الاستوديو (المعاينة + الأدوات)
-// ==========================================
 @Composable
 fun EditorView(currentTheme: SavedTheme, onThemeUpdate: (SavedTheme) -> Unit) {
     var selectedPage by remember { mutableIntStateOf(1) }
@@ -204,42 +166,22 @@ fun EditorView(currentTheme: SavedTheme, onThemeUpdate: (SavedTheme) -> Unit) {
     val icons = listOf(Icons.Default.Settings, Icons.Default.Edit, Icons.Default.Build, Icons.Default.Menu, Icons.Default.MoreVert)
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // المعاينة
-        Box(modifier = Modifier.fillMaxWidth().weight(0.35f).background(Color(0xFFFDE8C4)).padding(4.dp)) {
-            RealPreview(currentTheme)
-        }
+        Box(modifier = Modifier.fillMaxWidth().weight(0.35f).background(Color(0xFFFDE8C4)).padding(4.dp)) { RealPreview(currentTheme) }
         Divider(thickness = 2.dp)
-        // المساحة الذكية
         Box(modifier = Modifier.fillMaxWidth().weight(0.65f)) {
-            if (selectedPage == 0) {
-                // محرر الخلفية
-                BackgroundEditor(currentTheme, onThemeUpdate)
-            } else {
-                // محرر المفاتيح
-                KeyEditor(currentTheme, onThemeUpdate)
-            }
+            if (selectedPage == 0) BackgroundEditor(currentTheme, onThemeUpdate) else KeyEditor(currentTheme, onThemeUpdate)
         }
-        // شريط التنقل السفلي
         NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
             pages.forEachIndexed { index, title ->
-                NavigationBarItem(
-                    selected = selectedPage == index,
-                    onClick = { selectedPage = index },
-                    icon = { Icon(icons[index], contentDescription = title) },
-                    label = { Text(title, fontSize = 10.sp) }
-                )
+                NavigationBarItem(selected = selectedPage == index, onClick = { selectedPage = index }, icon = { Icon(icons[index], contentDescription = title) }, label = { Text(title, fontSize = 10.sp) })
             }
         }
     }
 }
 
-// ==========================================
-// 5. محرر الخلفية (3 أزرار)
-// ==========================================
 @Composable
 fun BackgroundEditor(theme: SavedTheme, onUpdate: (SavedTheme) -> Unit) {
     var innerView by remember { mutableIntStateOf(0) }
-    
     when (innerView) {
         0 -> Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             Text("تعديل الخلفية", fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -254,13 +196,9 @@ fun BackgroundEditor(theme: SavedTheme, onUpdate: (SavedTheme) -> Unit) {
     }
 }
 
-// ==========================================
-// 6. محرر المفاتيح (4 أزرار)
-// ==========================================
 @Composable
 fun KeyEditor(theme: SavedTheme, onUpdate: (SavedTheme) -> Unit) {
     var innerView by remember { mutableIntStateOf(0) }
-    
     when (innerView) {
         0 -> Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             Text("تعديل الأزرار", fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -275,21 +213,12 @@ fun KeyEditor(theme: SavedTheme, onUpdate: (SavedTheme) -> Unit) {
                 Button(onClick = { innerView = 4 }, modifier = Modifier.weight(1f).height(60.dp)) { Text("نص وحدود 🔤") }
             }
         }
-        1 -> ColorLibraryView(
-            onBgSelected = { onUpdate(theme.copy(keyBgBrush = it)) },
-            onBorderSelected = { onUpdate(theme.copy(keyBorderColor = it)) },
-            onTextSelected = { onUpdate(theme.copy(keyTextColor = it)) },
-            target = "الأزرار", onBack = { innerView = 0 }
-        )
+        1 -> ColorLibraryView(onBgSelected = { onUpdate(theme.copy(keyBgBrush = it)) }, onBorderSelected = { onUpdate(theme.copy(keyBorderColor = it)) }, onTextSelected = { onUpdate(theme.copy(keyTextColor = it)) }, target = "الأزرار", onBack = { innerView = 0 })
         2 -> ShapeLibraryView(onShapeChange = { onUpdate(theme.copy(keyShape = it)) }, onImageChange = { onUpdate(theme.copy(keyImageUri = it)) }, onBack = { innerView = 0 })
         3 -> OpacityView(theme.keyAlpha, { onUpdate(theme.copy(keyAlpha = it)) }, onBack = { innerView = 0 })
         4 -> TextAndBorderView(theme.keyTextSize, { onUpdate(theme.copy(keyTextSize = it)) }, theme.keyBorderWidth, { onUpdate(theme.copy(keyBorderWidth = it)) }, onBack = { innerView = 0 })
     }
 }
-
-// ==========================================
-// 7. الشاشات الفرعية
-// ==========================================
 @Composable
 fun OpacityView(alpha: Float, onAlphaChange: (Float) -> Unit, onBack: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -314,18 +243,13 @@ fun TextAndBorderView(size: Float, onSizeChange: (Float) -> Unit, borderW: Dp, o
 }
 
 @Composable
-fun ColorLibraryView(
-    onBgSelected: (Brush) -> Unit, target: String,
-    onBorderSelected: ((Color) -> Unit)? = null, onTextSelected: ((Color) -> Unit)? = null,
-    onBack: () -> Unit
-) {
-    var mode by remember { mutableIntStateOf(0) } // 0: Solid, 1: Gradient, 2: Custom
-    var targetTab by remember { mutableIntStateOf(0) } // 0: BG, 1: Border, 2: Text
+fun ColorLibraryView(onBgSelected: (Brush) -> Unit, target: String, onBorderSelected: ((Color) -> Unit)? = null, onTextSelected: ((Color) -> Unit)? = null, onBack: () -> Unit) {
+    var mode by remember { mutableIntStateOf(0) }
+    var targetTab by remember { mutableIntStateOf(0) }
     var isLight by remember { mutableStateOf(true) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") }; Text("مكتبة الألوان ($target)") }
-        
         if (target == "الأزرار") {
             TabRow(selectedTabIndex = targetTab) {
                 Tab(selected = targetTab == 0, onClick = { targetTab = 0 }, text = { Text("الخلفية") })
@@ -333,7 +257,6 @@ fun ColorLibraryView(
                 Tab(selected = targetTab == 2, onClick = { targetTab = 2 }, text = { Text("النص") })
             }
         }
-        
         if (targetTab == 0) {
             TabRow(selectedTabIndex = mode) {
                 Tab(selected = mode == 0, onClick = { mode = 0 }, text = { Text("أحادية") })
@@ -341,17 +264,14 @@ fun ColorLibraryView(
                 Tab(selected = mode == 2, onClick = { mode = 2 }, text = { Text("مخصص") })
             }
             Spacer(Modifier.height(8.dp))
-            
             when (mode) {
                 0, 1 -> {
-                    // تبويب فاتح / داكن
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         FilterChip(selected = isLight, onClick = { isLight = true }, label = { Text("فاتح") })
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         FilterChip(selected = !isLight, onClick = { isLight = false }, label = { Text("داكن") })
                     }
                     val colors = if (mode == 0) { if (isLight) SolidLight else SolidDark } else { if (isLight) GradientsLight else GradientsDark }
-                    
                     if (mode == 0) {
                         LazyVerticalGrid(columns = GridCells.Fixed(6), modifier = Modifier.padding(8.dp)) {
                             items(colors as List<Color>) { c -> Box(Modifier.padding(4.dp).aspectRatio(1f).clip(CircleShape).background(c).clickable { onBgSelected(SolidColor(c)) }) }
@@ -386,7 +306,6 @@ fun ColorLibraryView(
 fun ShapeLibraryView(onShapeChange: (Shape) -> Unit, onImageChange: (Uri) -> Unit, onBack: () -> Unit) {
     val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? -> uri?.let { onImageChange(it) } }
-
     Column(modifier = Modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") }
@@ -400,21 +319,15 @@ fun ShapeLibraryView(onShapeChange: (Shape) -> Unit, onImageChange: (Uri) -> Uni
     }
 }
 
-// ==========================================
-// 8. المعاينة الحقيقية
-// ==========================================
 @Composable
 fun RealPreview(theme: SavedTheme) {
     val context = LocalContext.current
     val imageBitmap = remember(theme.keyImageUri) {
         theme.keyImageUri?.let { uri -> context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it).asImageBitmap() } }
     }
-
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            listOf("١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "٠").forEach {
-                PK(it, theme, imageBitmap, Modifier.weight(1f))
-            }
+            listOf("١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "٠").forEach { PK(it, theme, imageBitmap, Modifier.weight(1f)) }
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج").forEach { PK(it, theme, imageBitmap, Modifier.weight(1f)) }
@@ -437,15 +350,8 @@ fun RealPreview(theme: SavedTheme) {
 fun PK(text: String, theme: SavedTheme, img: androidx.compose.ui.graphics.ImageBitmap?, mod: Modifier) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    
     Box(
-        modifier = mod.fillMaxHeight()
-            .padding(if (pressed) 2.dp else 0.dp)
-            .alpha(theme.keyAlpha)
-            .clip(theme.keyShape)
-            .background(theme.keyBgBrush)
-            .border(theme.keyBorderWidth, theme.keyBorderColor, theme.keyShape)
-            .clickable(interactionSource = interaction, indication = null) {},
+        modifier = mod.fillMaxHeight().padding(if (pressed) 2.dp else 0.dp).alpha(theme.keyAlpha).clip(theme.keyShape).background(theme.keyBgBrush).border(theme.keyBorderWidth, theme.keyBorderColor, theme.keyShape).clickable(interactionSource = interaction, indication = null) {},
         contentAlignment = Alignment.Center
     ) {
         if (img != null) {
