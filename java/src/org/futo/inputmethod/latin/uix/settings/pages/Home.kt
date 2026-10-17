@@ -109,19 +109,14 @@ val HomeScreenLite = UserSettingsMenu(
             title = R.string.theme_settings_title,
             style = NavigationItemStyle.HomeTertiary,
             navigateTo = "themes",
+            icon = R.drawable.themes
+        ),
+
         userSettingNavigationItem(
-            title = "استوديو التصميم",
+            title = R.string.theme_studio_title,
             style = NavigationItemStyle.HomeTertiary,
             navigateTo = "theme_studio",
             icon = R.drawable.themes
-        ),
-            icon = R.drawable.themes
-        userSettingNavigationItem(
-            title = "استوديو التصميم",
-            style = NavigationItemStyle.HomeTertiary,
-            navigateTo = "theme_studio",
-            icon = R.drawable.themes
-        ),
         ),
 
         //if(!isPaid) {
