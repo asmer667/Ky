@@ -46,3 +46,49 @@ jobs:
           yes | sdkmanager --licenses || true
           sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.2.13676358" --verbose
 
+      - name: Patch build.gradle to remove Mozc
+        shell: bash
+        run: |
+          sed -i "/implementation(name:'mozc-release', ext:'aar')/d" build.gradle
+          sed -i "/protobuf-javalite/d" build.gradle
+          sed -i "/com.google.guava:guava/d" build.gradle
+
+      - name: Delete Mozc-dependent source files
+        shell: bash
+        run: |
+          find java/src -name "JapaneseIME.kt" -delete 2>/dev/null || true
+          find java/src -name "PersonalDictionaryJa.kt" -delete 2>/dev/null || true
+          find java/src -name "ChineseIME.kt" -delete 2>/dev/null || true
+
+      - name: Build stable release (arm64-v8a)
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 1.0.${{ github.run_number }}
+          BRANCH_NAME: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace assembleStableRelease 2>&1 | tail -300
+
+      - name: Find APK
+        if: always()
+        shell: bash
+        run: |
+          find . -name "*.apk" -type f 2>/dev/null > apk_list.txt
+          cat apk_list.txt
+
+      - name: Copy APKs to single folder
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p final-apks
+          find . -name "*.apk" -type f -exec cp {} final-apks/ \; 2>/dev/null || true
+          ls -la final-apks/
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: futo-keyboard-apks
+          path: final-apks/*.apk
+          if-no-files-found: warn
