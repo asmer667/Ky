@@ -341,6 +341,7 @@ android {
             java.srcDirs = ['common/src', 'java/src']
             manifest.srcFile 'java/AndroidManifest.xml'
             assets.srcDirs = ['java/assets']
+            jniLibs.srcDirs = ['java/src/main/jniLibs']
         }
 
         playstore {
