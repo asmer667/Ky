@@ -70,25 +70,10 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --no-daemon --stacktrace assembleStableRelease 2>&1 | tail -300
 
-      - name: Find APK
-        if: always()
-        shell: bash
-        run: |
-          find . -name "*.apk" -type f 2>/dev/null > apk_list.txt
-          cat apk_list.txt
-
-      - name: Copy APKs to single folder
-        if: always()
-        shell: bash
-        run: |
-          mkdir -p final-apks
-          find . -name "*.apk" -type f -exec cp {} final-apks/ \; 2>/dev/null || true
-          ls -la final-apks/
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: futo-keyboard-apks
-          path: final-apks/*.apk
+          name: futo-keyboard-apk
+          path: "**/*.apk"
           if-no-files-found: warn
