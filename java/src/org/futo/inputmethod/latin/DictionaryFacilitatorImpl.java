@@ -881,7 +881,7 @@ public class DictionaryFacilitatorImpl implements DictionaryFacilitator {
             SwipeDecoderDictionary.updateKeyboard(keyboard);
             updateSwipeLayoutAndDictsIfNeeded(Settings.getInstance().getCurrent(), keyboard);
 
-            if(false) { // Swipe disabled to prevent crash
+            if(SwipeDecoderDictionary.canBeUsed()) {
                 final ArrayList<SuggestedWordInfo> dictionarySuggestions =
                         DictionaryFacilitatorImpl.swipeDecoderDictionary.getSuggestions(composedData, ngramContext,
                             inputStyle == SuggestedWords.INPUT_STYLE_TAIL_BATCH, getTrieWeights());
