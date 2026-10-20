@@ -86,10 +86,9 @@ data class LayoutInfoForModel(
                 val keys = keyboard.sortedKeys
                     .filter { settingsValues.isWordCodePoint(it.swipeCode) && !Character.isDigit(it.swipeCode) }
                     .sortedBy { it.swipeCode }
-                    .distinctBy { it.swipeCode } // The engine currently can't handle letters existing multiple times. Sorry custom layouts!
+                    .distinctBy { it.swipeCode }
                 val letters = keys.joinToString(separator="") { Character.toString(Character.toLowerCase(it.swipeCode)) }
 
-                // Guard against non-alphabet keyboards
                 if(!keyboard.mId.mElement.kind.isAlphabet || letters.length < 6) return@run null
 
                 val positions = keys.map { getKeyXY(it, keyboard) }
@@ -136,14 +135,10 @@ private class SpecialContextLM private constructor(
 
 private class SpecialDecoder private constructor(
     val asset: String,
-
     val language: String,
     val layoutLetters: String,
-
-    // These are normalized such that the lowest value is always 0, and highest value is always 1
     val layoutXs: List<Float>,
     val layoutYs: List<Float>,
-
     val xOffset: Float,
     val xScale: Float,
     val yOffset: Float,
@@ -175,13 +170,10 @@ private class SpecialDecoder private constructor(
             return specialDecoders.firstNotNullOfOrNull { decoder ->
                 if(keyboard.mId.mLocale.language != decoder.language) return@firstNotNullOfOrNull null
 
-                // In case the layout has multiple repeated instances of the same letter, let's forget
-                // about using a special decoder, since this should never occur in a regular layout.
                 if(decoder.layoutLetters.any { letter -> keyboard.sortedKeys.count { key ->
                         Character.toLowerCase(key.swipeCode) == letter.code
                 } > 1}) return@firstNotNullOfOrNull null
 
-                // Make sure the letters are a perfect match!
                 val expectedLayoutLetters = decoder.layoutLetters.map { it.code }.toSortedSet()
                 val ourLayoutLetters = keys.keys.filter { !Character.isDigit(it) && settingsValues.isWordCodePoint(it) }.toSortedSet()
                 if(expectedLayoutLetters != ourLayoutLetters) return@firstNotNullOfOrNull null
@@ -252,7 +244,6 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
         var appliedLayoutInfo: LayoutInfoForModel = LayoutInfoForModel.DEFAULT
             private set
 
-        // for debug info
         val appliedScoring = mutableStateOf(SwipeDecoder.Scoring(0.0f, 0.0f, 0.0f, 0.0f))
         var appliedTries: LongArray? = null
         var appliedTrieWeights by mutableStateOf<FloatArray>(FloatArray(0))
@@ -293,7 +284,6 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
             createdFiles.add(assetName)
 
             if(assetName.endsWith(".pte")) {
-                // Ensure metadata is also present
                 getFilePath(context, metadataFor(assetName))
             }
 
@@ -330,10 +320,17 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
     private fun getOrInitDecoder(): SwipeDecoder = decoder ?: run {
         val swipeModelPath = getFilePath(context, SWIPE_MODEL)
 
+        // تعديل: إزالة أسماء المعاملات لتتوافق مع Java
         val decoder = SwipeDecoder(
-            encoderPath = swipeModelPath,
-            beamWidth = BeamValues.highestBeam,
-            useExpansion = false, // ITrie contains expanded entries already
+            swipeModelPath,
+            null,
+            1,
+            100,
+            4,
+            true,
+            "f",
+            null,
+            null
         )
 
         this.decoder = decoder
@@ -358,7 +355,6 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
 
         val results = decoder.predictNext()
 
-        //Log.d("SwipeDecoderDictionary", "getPredictions results=${results}")
         val list = ArrayList<SuggestedWords.SuggestedWordInfo>(results.size)
         results.forEach {
             list.add(SuggestedWords.SuggestedWordInfo(
@@ -405,7 +401,6 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
         val segments = pointers.gestureSegments.toList().filter { it.x.length > 0 }
 
         val count = segments.size
-        //Log.d("BatchInputSwipeDecoderDictionary", "total count is $count out of ${pointers.gestureSegments.size}")
         if(count == 0) return null
 
         val kb = prevKeyboard ?: run {
@@ -418,13 +413,13 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
 
         val earliestTime = segments[0].t.get(0).toFloat()
         val transformSegment = { seg: InputPointers.GestureSegment -> SwipeDecoder.SwipeSeg(
-            x = seg.x.primitiveArray.take(seg.x.length).map {
+            seg.x.primitiveArray.take(seg.x.length).map {
                 it.toFloat() / keyboardWidth * appliedLayoutInfo.sx + appliedLayoutInfo.ox
             }.toFloatArray(),
-            y = seg.y.primitiveArray.take(seg.y.length).map {
+            seg.y.primitiveArray.take(seg.y.length).map {
                 minOf(1.0f, (it.toFloat() / keyboardHeight) * (4.0f / 3.0f) * appliedLayoutInfo.sy + appliedLayoutInfo.oy )
             }.toFloatArray(),
-            t = seg.t.primitiveArray.take(seg.t.length).map { it - earliestTime }.toFloatArray()
+            seg.t.primitiveArray.take(seg.t.length).map { it - earliestTime }.toFloatArray()
         ) }
 
         val left = mutableListOf<SwipeDecoder.SwipeSeg>()
@@ -458,19 +453,15 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
         }
 
         val topK = if(useHighBeam) 4 else 1
-        
+
         val results = try {
             synchronized(BinaryDictionary.sTrieUsageLock) {
                 if(appliedTries?.isEmpty() != false) {
                     Log.e("SwipeDecoderDictionary", "Applied tries are blank! $appliedTries")
                     return null
                 }
-                decoder.recognize(
-                    left.toTypedArray(), right.toTypedArray(),
-                    topK = topK,
-                    beamWidth = beamWidth,
-                    trieWeights = trieWeights
-                )
+                // تعديل: إزالة أسماء المعاملات
+                decoder.recognize(left.toTypedArray(), right.toTypedArray(), topK, beamWidth, trieWeights)
             }
         } catch (e: OutOfMemoryError) {
             Log.e("SwipeDecoderDictionary", "OutOfMemory during recognize", e)
@@ -481,7 +472,6 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
             return null
         }
 
-        // basically update it at end of swiping
         if(useHighBeam) appliedScoring.value = decoder.scoring
 
         if(BuildConfig.DEBUG || System.currentTimeMillis() < debugLogUntil) {
@@ -534,15 +524,15 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
     private fun applyPendingLayoutInfo() {
         decoder?.let { d ->
             pendingLayoutInfo?.let { pend ->
-                //Log.d("SwipeDecoderDictionary", "Applying layout info: $pend")
+                // تعديل: إزالة أسماء المعاملات
                 d.setMode(
-                    letters=pend.layout.letters,
-                    cx=pend.layout.xs.toFloatArray(),
-                    cy=pend.layout.ys.toFloatArray(),
-                    tries=pend.tries.toLongArray(),
-                    decoderPath=getFilePath(context, pend.layout.decoder),
-                    lmModelPath=getFilePath(context, pend.layout.lm),
-                    lmVocabPath=getFilePath(context, vocabFor(pend.layout.lm))
+                    pend.layout.letters,
+                    pend.layout.xs.toFloatArray(),
+                    pend.layout.ys.toFloatArray(),
+                    pend.tries.toLongArray(),
+                    getFilePath(context, pend.layout.decoder),
+                    getFilePath(context, pend.layout.lm),
+                    getFilePath(context, vocabFor(pend.layout.lm))
                 )
                 appliedScoring.value = d.scoring
                 appliedLayoutInfo = pend.layout
@@ -563,7 +553,15 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
 
     fun invalidateTries() {
         if(appliedTries?.isEmpty() != false) return
-        decoder?.setMode(tries = emptyList<Long>().toLongArray())
+        decoder?.setMode(
+            null,
+            null,
+            null,
+            emptyList<Long>().toLongArray(),
+            null,
+            null,
+            null
+        )
         appliedTries = null
     }
 }
