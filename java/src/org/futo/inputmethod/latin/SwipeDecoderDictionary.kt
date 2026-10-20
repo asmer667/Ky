@@ -343,29 +343,6 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
         return arrayListOf()
     }
 
-    private fun getPredictions(
-        composedData: ComposedData,
-        ngramContext: NgramContext?
-    ): ArrayList<SuggestedWords.SuggestedWordInfo>? {
-        if(true) return null
-
-        val decoder = getOrInitDecoder()
-        val wordsContext = ngramContext?.fullContext?.split(' ')?.takeLast(10) ?: emptyList()
-        decoder.setContext(wordsContext)
-
-        val results = decoder.predictNext()
-
-        val list = ArrayList<SuggestedWords.SuggestedWordInfo>(results.size)
-        results.forEach {
-            list.add(SuggestedWords.SuggestedWordInfo(
-                it.word, "", (it.score * 1000.0f + 10000.0f).toInt(), SuggestedWords.SuggestedWordInfo.KIND_CORRECTION, this, 0, 0
-            ).apply {
-                mOriginatesFromSwipeModel = true
-            })
-        }
-
-        return list
-    }
 
     override fun getSuggestions(
         composedData: ComposedData?,
@@ -389,7 +366,6 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
         if(context.getSetting(LegacySwipeSetting) == true) return null
 
         if(!composedData.mIsBatchMode && composedData.mInputPointers.pointerSize == 0 && composedData.mTypedWord.isEmpty()) {
-            return getPredictions(
                 composedData,
                 ngramContext
             )
