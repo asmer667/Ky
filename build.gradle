@@ -459,7 +459,6 @@ dependencies {
 
     // For RIME
     implementation files('libs/rime-release.aar')
-    implementation files('libs/futo-swipe-release.aar')
     // End for RIME
 
 
