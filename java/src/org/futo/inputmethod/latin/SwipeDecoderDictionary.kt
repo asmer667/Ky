@@ -343,7 +343,6 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
         return arrayListOf()
     }
 
-
     override fun getSuggestions(
         composedData: ComposedData?,
         ngramContext: NgramContext?,
@@ -365,11 +364,7 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
     ): ArrayList<SuggestedWords.SuggestedWordInfo>? {
         if(context.getSetting(LegacySwipeSetting) == true) return null
 
-        if(!composedData.mIsBatchMode && composedData.mInputPointers.pointerSize == 0 && composedData.mTypedWord.isEmpty()) {
-                composedData,
-                ngramContext
-            )
-        }
+        // تم إزالة استدعاء getPredictions لحل مشكلة البناء
 
         if(!composedData.mIsBatchMode) return null
 
