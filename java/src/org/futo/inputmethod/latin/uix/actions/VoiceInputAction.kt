@@ -98,6 +98,7 @@ fun NoModelInstalled(locale: Locale) {
 }
 
 class VoiceInputPersistentState(val manager: KeyboardManagerForAction) : PersistentActionState {
+    ensureVoiceModelIsInstalled(manager.getContext())
     val modelManager = ModelManager(manager.getContext())
     val soundPlayer = SoundPlayer(manager.getContext())
     val userDictionaryObserver = UserDictionaryObserver(manager.getContext())
@@ -322,3 +323,20 @@ val VoiceInputAction = Action(icon = R.drawable.mic_fill,
     }
 )
 // دالة لنسخ النموذج الصوتي من assets إلى الذاكرة الداخلية
+
+// دالة لنسخ النموذج الصوتي من assets إلى filesDir
+fun ensureVoiceModelIsInstalled(context: android.content.Context) {
+    val modelName = "tiny_en_acft_q8_0.bin.not.tflite"
+    val targetFile = java.io.File(context.filesDir, modelName)
+    if (!targetFile.exists()) {
+        try {
+            context.assets.open(modelName).use { input ->
+                targetFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("VoiceInputAction", "Error copying voice model: ${e.message}")
+        }
+    }
+}
