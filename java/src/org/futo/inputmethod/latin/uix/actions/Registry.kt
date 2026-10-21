@@ -20,7 +20,6 @@ import org.futo.inputmethod.latin.uix.setSettingBlocking
 
 // Note: indices must stay stable
 val AllActionsMap = mapOf(
-    "calculator" to CalculatorAction,
     "emoji" to EmojiAction,
     "settings" to SettingsAction,
     "paste" to PasteAction,
