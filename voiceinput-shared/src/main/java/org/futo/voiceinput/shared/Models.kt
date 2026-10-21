@@ -28,10 +28,9 @@ val ENGLISH_MODELS: List<ModelLoader> = listOf(
 )
 
 val MULTILINGUAL_MODELS: List<ModelLoader> = listOf(
-    ModelDownloadable(
+    ModelBuiltInAsset(
         name = R.string.tiny_name,
-        ggmlFile = "tiny_acft_q8_0.bin",
-        checksum = "07aa4d514144deacf5ffec5cacb36c93dee272fda9e64ac33a801f8cd5cbd953"
+        ggmlFile = "tiny_acft_q8_0.bin"
     ),
     ModelDownloadable(
         name = R.string.base_name,
