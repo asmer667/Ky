@@ -66,19 +66,16 @@ fun CalculatorScreen() {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // الخلفية (إذا كانت الصورة موجودة)
-        // إذا لم تكن الصورة موجودة، سيظهر لون رمادي داكن
+        // الخلفية (الصورة التي أضفتها)
         Image(
-            painter = painterResource(id = R.drawable.calculator_bg), // اسم الصورة
+            painter = painterResource(id = R.drawable.calculator_bg),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
 
-        // المحتوى فوق الخلفية (شفاف قليلاً ليظهر الخلفية)
-        Column(
-            modifier = Modifier.fillMaxSize().padding(8.dp)
-        ) {
+        // المحتوى فوق الخلفية (شفاف قليلاً)
+        Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
             Box(
                 modifier = Modifier.fillMaxWidth().weight(0.25f).background(Color(0xCC1E1E1E), RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.CenterEnd
@@ -112,7 +109,7 @@ fun CalculatorScreen() {
                                 }
                             },
                             modifier = Modifier.weight(weight).fillMaxHeight().clip(RoundedCornerShape(8.dp)),
-                            colors = ButtonDefaults.buttonColors(containerColor = if (button in listOf("+", "-", "×", "÷", "=")) Color(0xE6FF9500) else Color(0xE6505050)) // ألوان شفافة قليلاً
+                            colors = ButtonDefaults.buttonColors(containerColor = if (button in listOf("+", "-", "×", "÷", "=")) Color(0xE6FF9500) else Color(0xE6505050))
                         ) {
                             Text(text = button, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                         }
