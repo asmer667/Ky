@@ -536,7 +536,8 @@ fun determineFileKind(inputStream: InputStream): FileKindAndInfo {
 
 object ResourceHelper {
     val BuiltInVoiceInputFallbacks = mapOf(
-        "en" to BUILTIN_ENGLISH_MODEL
+        "en" to BUILTIN_ENGLISH_MODEL,
+        "ar" to BUILTIN_ENGLISH_MODEL
     )
 
     fun findKeyForLocaleAndKind(context: Context, locale: Locale, kind: FileKind): String? {
