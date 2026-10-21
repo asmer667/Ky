@@ -9,16 +9,6 @@ import java.io.IOException
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 
-
-// Taken from https://github.com/tensorflow/tflite-support/blob/483c45d002cbed57d219fae1676a4d62b28fba73/tensorflow_lite_support/java/src/java/org/tensorflow/lite/support/common/FileUtil.java#L158
-/**
- * Loads a file from the asset folder through memory mapping.
- *
- * @param context Application context to access assets.
- * @param filePath Asset path of the file.
- * @return the loaded memory mapped file.
- * @throws IOException if an I/O error occurs when loading the file model.
- */
 @Throws(IOException::class)
 private fun loadMappedFile(context: Context, filePath: String): MappedByteBuffer {
     context.assets.openFd(filePath).use { fileDescriptor ->
@@ -31,16 +21,12 @@ private fun loadMappedFile(context: Context, filePath: String): MappedByteBuffer
     }
 }
 
-// Maybe add `val languages: Set<Language>`
 interface ModelLoader {
     @get:StringRes
     val name: Int
-
     fun exists(context: Context): Boolean
     fun getRequiredDownloadList(context: Context): List<String>
-
     fun loadGGML(context: Context): WhisperGGML
-
     fun key(context: Context): Any
 }
 
@@ -51,16 +37,13 @@ internal class ModelBuiltInAsset(
     override fun exists(context: Context): Boolean {
         return true
     }
-
     override fun getRequiredDownloadList(context: Context): List<String> {
         return listOf()
     }
-
     override fun loadGGML(context: Context): WhisperGGML {
         val file = loadMappedFile(context, ggmlFile)
         return WhisperGGML(file)
     }
-
     override fun key(context: Context): Any {
         return "BuiltIn$ggmlFile"
     }
@@ -70,11 +53,7 @@ internal class ModelBuiltInAsset(
 private fun tryOpenDownloadedModel(file: File): MappedByteBuffer {
     val fis = file.inputStream()
     val channel = fis.channel
-
-    return channel.map(
-        FileChannel.MapMode.READ_ONLY,
-        0, channel.size()
-    ).load()
+    return channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size()).load()
 }
 
 @Throws(IOException::class)
@@ -88,20 +67,35 @@ internal class ModelDownloadable(
     val checksum: String
 ) : ModelLoader {
     override fun exists(context: Context): Boolean {
-        return getRequiredDownloadList(context).isEmpty()
-    }
-
-    override fun getRequiredDownloadList(context: Context): List<String> {
-        return listOf(ggmlFile).filter {
-            !File(context.filesDir, it).exists()
+        // البحث في assets أولاً
+        return try {
+            context.assets.open(ggmlFile).close()
+            true
+        } catch (e: Exception) {
+            File(context.filesDir, ggmlFile).exists()
         }
     }
-
-    override fun loadGGML(context: Context): WhisperGGML {
-        val file = context.tryOpenDownloadedModel(ggmlFile)
-        return WhisperGGML(file)
+    override fun getRequiredDownloadList(context: Context): List<String> {
+        // إذا كان موجوداً في assets، لا حاجة للتنزيل
+        return try {
+            context.assets.open(ggmlFile).close()
+            listOf()
+        } catch (e: Exception) {
+            listOf(ggmlFile).filter {
+                !File(context.filesDir, it).exists()
+            }
+        }
     }
-
+    override fun loadGGML(context: Context): WhisperGGML {
+        // محاولة القراءة من assets أولاً، ثم من filesDir
+        return try {
+            val file = loadMappedFile(context, ggmlFile)
+            WhisperGGML(file)
+        } catch (e: Exception) {
+            val file = context.tryOpenDownloadedModel(ggmlFile)
+            WhisperGGML(file)
+        }
+    }
     override fun key(context: Context): Any {
         return "Downloadable$ggmlFile$checksum"
     }
@@ -114,16 +108,13 @@ public class ModelFileFile(
     override fun exists(context: Context): Boolean {
         return file.exists()
     }
-
     override fun getRequiredDownloadList(context: Context): List<String> {
         return listOf()
     }
-
     override fun loadGGML(context: Context): WhisperGGML {
         val file = tryOpenDownloadedModel(file)
         return WhisperGGML(file)
     }
-
     override fun key(context: Context): Any {
         return "File${file.absolutePath}"
     }
