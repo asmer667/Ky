@@ -98,9 +98,6 @@ fun NoModelInstalled(locale: Locale) {
 }
 
 class VoiceInputPersistentState(val manager: KeyboardManagerForAction) : PersistentActionState {
-    init {
-        ensureVoiceModelIsInstalled(manager.getContext())
-    }
     val modelManager = ModelManager(manager.getContext())
     val soundPlayer = SoundPlayer(manager.getContext())
     val userDictionaryObserver = UserDictionaryObserver(manager.getContext())
