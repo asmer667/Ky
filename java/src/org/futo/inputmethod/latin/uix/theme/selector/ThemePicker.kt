@@ -282,12 +282,12 @@ fun ThemePicker(
                             }
                         }
                         items(filteredAssetThemes) { name ->
-                            ZipThemePreview(name = name, isSelected = currentTheme == name.toSetting(), onLongClick = { contextMenuTheme = name }, isFavorite = name.name in favorites, onFavoriteClick = { ZipThemes.toggleFavorite(context, name.name); favoritesVersion++ }) { lifecycle.lifecycleScope.launch { context.setSetting(THEME_KEY, name.toSetting()) } }
+                            ZipThemePreview(name = name, isSelected = currentTheme == name.toSetting(), onLongClick = { contextMenuTheme = name }, isFavorite = name.name in favorites, onFavoriteClick = { ZipThemes.toggleFavorite(context, name.name); favoritesVersion++ }, onClick = {}) lifecycle.lifecycleScope.launch { context.setSetting(THEME_KEY, name.toSetting()) } }
                         }
                     } else {
                         item(span = { GridItemSpan(maxCurrentLineSpan) }) { Text("الثيمات الخاصة بك", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
                         if (filteredCustomThemes.isEmpty()) { item(span = { GridItemSpan(maxCurrentLineSpan) }) { Text("لا توجد ثيمات مخصصة", modifier = Modifier.padding(16.dp)) } }
-                        else { items(filteredCustomThemes.size) { val name = filteredCustomThemes[it]; ZipThemePreview(name = name, isSelected = currentTheme == name.toSetting(), onLongClick = { contextMenuTheme = name }, isFavorite = name.name in favorites, onFavoriteClick = { ZipThemes.toggleFavorite(context, name.name); favoritesVersion++ }) { lifecycle.lifecycleScope.launch { context.setSetting(THEME_KEY, name.toSetting()) } } } }
+                        else { items(filteredCustomThemes.size) { val name = filteredCustomThemes[it]; ZipThemePreview(name = name, isSelected = currentTheme == name.toSetting(), onLongClick = { contextMenuTheme = name }, isFavorite = name.name in favorites, onFavoriteClick = { ZipThemes.toggleFavorite(context, name.name); favoritesVersion++ }, onClick = {}) lifecycle.lifecycleScope.launch { context.setSetting(THEME_KEY, name.toSetting()) } } } }
                     }
                 }
             }
@@ -312,4 +312,67 @@ fun ThemePicker(
     if (showSearchDialog) SearchDialog(customThemes + allAssetThemes, { showSearchDialog = false }, { theme -> lifecycle.lifecycleScope.launch { context.setSetting(THEME_KEY, theme.toSetting()) } })
     if (showSortDialog) SortDialog(sortBy, { sortBy = it }, { showSortDialog = false })
     contextMenuTheme?.let { theme -> AlertDialog(onDismissRequest = { contextMenuTheme = null }, title = { Text(theme.name) }, text = { Column { TextButton(onClick = { ZipThemes.toggleFavorite(context, theme.name); favoritesVersion++; contextMenuTheme = null }) { Text(if (theme.name in favorites) "إزالة" else "إضافة") } } }, confirmButton = { TextButton(onClick = { contextMenuTheme = null }) { Text("إغلاق") } }) }
+}
+@Composable
+fun CustomThemeDialog(navController: NavHostController = rememberNavController()) {
+    val pickLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri: Uri? ->
+            uri ?: return@rememberLauncherForActivityResult
+            navController.navigateUp()
+            navController.navigate(Route.CustomTheme(uri.toString()))
+        }
+    )
+    val context = LocalContext.current
+    AlertDialog(
+        onDismissRequest = { navController.navigateUp() },
+        title = { Text("إضافة ثيم جديد") },
+        text = { Text("اختر صورة أو ملف ZIP") },
+        confirmButton = {
+            Button(onClick = { pickLauncher.launch("image/*") }) { Text("اختر صورة") }
+        },
+        dismissButton = {
+            Button(onClick = {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "application/zip"
+                }
+                findActivity(context)!!.startActivityForResult(intent, IMPORT_RESOURCE_FILE_REQUEST)
+                navController.navigateUp()
+            }) { Text("تحميل ZIP") }
+        }
+    )
+}
+
+@Composable
+fun DeleteCustomThemeDialog(name: String, navController: NavHostController) {
+    val context = LocalContext.current
+    AlertDialog(
+        onDismissRequest = { navController.navigateUp() },
+        title = { Text("حذف الثيم") },
+        text = { Text("هل أنت متأكد من حذف $name؟") },
+        confirmButton = {
+            Button(onClick = {
+                ZipThemes.delete(context, ZipThemes.custom(name))
+                navController.navigateUp()
+            }) { Text("حذف") }
+        },
+        dismissButton = {
+            TextButton(onClick = { navController.navigateUp() }) { Text("إلغاء") }
+        }
+    )
+}
+
+fun themeMatchesColor(themeName: String, colorKey: String?): Boolean {
+    if (colorKey == null) return true
+    val lower = themeName.lowercase()
+    return when (colorKey) {
+        "red" -> lower.contains("red") || lower.contains("crimson") || lower.contains("ruby") || lower.contains("rose")
+        "blue" -> lower.contains("blue") || lower.contains("azure") || lower.contains("cobalt")
+        "green" -> lower.contains("green") || lower.contains("lime") || lower.contains("emerald") || lower.contains("mint")
+        "purple" -> lower.contains("purple") || lower.contains("violet") || lower.contains("magenta")
+        "pink" -> lower.contains("pink") || lower.contains("rose") || lower.contains("plasma")
+        "orange" -> lower.contains("orange") || lower.contains("amber") || lower.contains("peach")
+        else -> true
+    }
 }
