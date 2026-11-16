@@ -468,6 +468,7 @@ fun ColorEditorDialog(theme: ZipThemes.ThemeFileName, onDismiss: () -> Unit) {
                 }
             }
         },
+        confirmButton = { Button(onClick = { Toast.makeText(context, "قريباً", Toast.LENGTH_SHORT).show(); onDismiss() }) { Text("حفظ") } },
         dismissButton = { OutlinedButton(onClick = onDismiss) { Text("إلغاء") } }
     )
 }
@@ -584,7 +585,7 @@ fun exportSettings(context: Context) {
 }
 
 // ==========================================
-// 3. الشاشة الرئيسية (ThemePicker) - مع أزرار التبديل
+// 3. الشاشة الرئيسية (ThemePicker) - التصميم الجديد
 // ==========================================
 @Composable
 fun ThemePicker(
@@ -620,8 +621,8 @@ fun ThemePicker(
     var showSortDialog by remember { mutableStateOf(false) }
     var previewTheme by remember { mutableStateOf<ZipThemes.ThemeFileName?>(null) }
     var showFavoritesOnly by remember { mutableStateOf(false) }
-    var showSettingsMenu by remember { mutableStateOf(false) } // للتحكم في قائمة الترس
-    var activeTab by remember { mutableIntStateOf(0) } // 0 = مدمج، 1 = خاصتي
+    var showSettingsMenu by remember { mutableStateOf(false) } 
+    var activeTab by remember { mutableIntStateOf(0) } 
 
     // فلترة
     val favorites = remember(favoritesVersion) { ZipThemes.getFavorites(context) }
@@ -646,7 +647,7 @@ fun ThemePicker(
         Column {
             // --- 1. شريط البحث الرئيسي ---
             OutlinedTextField(
-                value = "", // واجهة فقط
+                value = "", 
                 onValueChange = { showSearchDialog = true },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -799,13 +800,11 @@ fun ThemePicker(
             }
         }
 
-        // --- زر الترس الوحيد (أسفل اليمين) مع القائمة المنسدلة ---
-        Box(
-        // --- الأزرار العائمة (معاينة + ترس) في الزاوية السفلية اليمنى ---
+        // --- زر تجربة الثيم (السهم) + زر الترس ---
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .imePadding() // ترفع الأزرار فوق لوحة المفاتيح
+                .imePadding()
                 .padding(end = 16.dp, bottom = 16.dp),
             horizontalAlignment = Alignment.End
         ) {
@@ -877,6 +876,7 @@ fun ThemePicker(
             }
         }
     }
+
     // --- النوافذ المنبثقة (Dialogs) ---
     if (showSearchDialog) SearchDialog(customThemes + allAssetThemes, { showSearchDialog = false }, { theme -> lifecycle.lifecycleScope.launch { context.setSetting(THEME_KEY, theme.toSetting()) } })
     if (showSortDialog) SortDialog(sortBy, { sortBy = it }, { showSortDialog = false })
