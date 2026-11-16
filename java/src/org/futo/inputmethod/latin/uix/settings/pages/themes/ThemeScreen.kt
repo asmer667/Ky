@@ -191,25 +191,18 @@ fun ThemeScreen(navController: NavHostController = rememberNavController()) {
 
     Scaffold(
         floatingActionButton = {
-            if (enableKeyboardPreview) {
-                SmallFloatingActionButton(
-                    onClick = {
-                        showKeyboard = !showKeyboard
-                    }
-                ) {
-                    RotatingChevronIcon(!showKeyboard)
-                }
-            }
+            // تم إزالة الزر العائم القديم من هنا لأنه أصبح داخل ThemePicker
         },
         floatingActionButtonPosition = FabPosition.Start
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             ScreenTitle(stringResource(R.string.theme_settings_title), showBack = true, navController)
-            ThemePicker({
-                navController.navigate(Route.DeleteTheme(it))
-            }, {
-                navController.navigate("customThemeDialog")
-            })
+            ThemePicker(
+                onDeleteCustomTheme = { navController.navigate(Route.DeleteTheme(it)) },
+                onCustomTheme = { navController.navigate("customThemeDialog") },
+                showKeyboard = showKeyboard,
+                onToggleKeyboard = { showKeyboard = !showKeyboard }
+            )
         }
     }
 }
