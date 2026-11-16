@@ -643,168 +643,11 @@ fun ThemePicker(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Column {
-            // --- 1. شريط البحث الرئيسي ---
-            OutlinedTextField(
-                value = "", 
-                onValueChange = { showSearchDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("البحث في الثيمات...") },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
-                shape = RoundedCornerShape(24.dp),
-                readOnly = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            )
-
-            // --- 2. أزرار التبديل (مدمج / خاصتي) ---
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                FilterChip(
-                    selected = activeTab == 0,
-                    onClick = { activeTab = 0 },
-                    label = { Text("مدمج") },
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                FilterChip(
-                    selected = activeTab == 1,
-                    onClick = { activeTab = 1 },
-                    label = { Text("خاصتي") },
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
-
-            // --- 3. أزرار الألوان ---
-            ColorFilterRow(selectedColor = selectedColor, onSelect = { selectedColor = it })
-
-            // --- 4. عنوان المفضلة ---
-            if (showFavoritesOnly) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700))
-                    Spacer(Modifier.width(8.dp))
-                    Text("المفضلة", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                }
-            }
-
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                LazyVerticalGrid(
-                    state = gridState,
-                    modifier = Modifier.fillMaxWidth(),
-                    columns = GridCells.Adaptive(minSize = 160.dp),
-                    horizontalArrangement = if (originalDirection == LayoutDirection.Rtl) Arrangement.End else Arrangement.Start,
-                    contentPadding = PaddingValues(bottom = 100.dp)
-                ) {
-                    // قسم الثيمات (يظهر حسب التبويب المختار)
-                    if (activeTab == 0) {
-                        // --- عرض الثيمات المدمجة ---
-                        item(span = { GridItemSpan(maxCurrentLineSpan) }) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.GridView, null, tint = MaterialTheme.colorScheme.primary)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("جميع الثيمات المدمجة", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                }
-                                Surface(
-                                    onClick = { showSortDialog = true },
-                                    shape = RoundedCornerShape(20.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant
-                                ) {
-                                    Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Text("ترتيب حسب", style = MaterialTheme.typography.bodySmall)
-                                        Icon(Icons.Default.KeyboardArrowDown, null)
-                                    }
-                                }
-                            }
-                        }
-
-                        items(filteredAssetThemes) { name ->
-                            ZipThemePreview(
-                                name = name,
-                                isSelected = currentTheme == name.toSetting(),
-                                onLongClick = { previewTheme = name },
-                                isFavorite = name.name in favorites,
-                                onFavoriteClick = { ZipThemes.toggleFavorite(context, name.name); favoritesVersion++ }
-                            ) { lifecycle.lifecycleScope.launch { context.setSetting(THEME_KEY, name.toSetting()) } }
-                        }
-
-                        items(availableThemeOptions.size) {
-                            val themeOption = availableThemeOptions[it].second
-                            ThemePreview(themeOption, isSelected = themeOption.key == currentTheme) {
-                                lifecycle.lifecycleScope.launch { context.setSetting(THEME_KEY, themeOption.key) }
-                            }
-                        }
-                    } else {
-                        // --- عرض الثيمات الخاصة بك ---
-                        item(span = { GridItemSpan(maxCurrentLineSpan) }) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        if (filteredCustomThemes.isEmpty()) "الثيمات الخاصة بك (0)" else "الثيمات الخاصة بك (${filteredCustomThemes.size})",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        }
-
-                        if (filteredCustomThemes.isEmpty()) {
-                            item(span = { GridItemSpan(maxCurrentLineSpan) }) {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(12.dp)).padding(24.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(Icons.Default.Home, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
-                                        Spacer(Modifier.height(8.dp))
-                                        Text("لا توجد ثيمات مخصصة بعد", fontWeight = FontWeight.Bold)
-                                        Text("قم بحفظ ثيماتك المفضلة هنا", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            }
-                        } else {
-                            items(filteredCustomThemes.size) {
-                                val name = filteredCustomThemes[it]
-                                ZipThemePreview(
-                                    name = name,
-                                    isSelected = currentTheme == name.toSetting(),
-                                    onLongClick = { contextMenuTheme = name },
-                                    isFavorite = name.name in favorites,
-                                    onFavoriteClick = { ZipThemes.toggleFavorite(context, name.name); favoritesVersion++ }
-                                ) { lifecycle.lifecycleScope.launch { context.setSetting(THEME_KEY, name.toSetting()) } }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // --- زر تجربة الثيم (السهم) + زر الترس ---
+        // --- الأزرار العائمة (معاينة + ترس) في الزاوية السفلية اليمنى ---
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .imePadding()
+                .imePadding() // ترفع الأزرار فوق لوحة المفاتيح
                 .padding(end = 16.dp, bottom = 16.dp),
             horizontalAlignment = Alignment.End
         ) {
@@ -875,8 +718,6 @@ fun ThemePicker(
                 }
             }
         }
-    }
-
     // --- النوافذ المنبثقة (Dialogs) ---
     if (showSearchDialog) SearchDialog(customThemes + allAssetThemes, { showSearchDialog = false }, { theme -> lifecycle.lifecycleScope.launch { context.setSetting(THEME_KEY, theme.toSetting()) } })
     if (showSortDialog) SortDialog(sortBy, { sortBy = it }, { showSortDialog = false })
